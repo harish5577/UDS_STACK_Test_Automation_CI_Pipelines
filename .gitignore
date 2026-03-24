@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+GUI_App/build/
+GUI_App/dist/
+*.spec
+
+# Test results and logs
+log.html
+report.html
+output.xml
+uds_frames_log.xlsx
+canoe_write_log.txt
+*.log
+
+# Environment
+.venv/
+env/
+venv/
+.env
+
+# Robot Framework artifacts
+output.xml
+log.html
+report.html

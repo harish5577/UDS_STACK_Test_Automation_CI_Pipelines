@@ -1,0 +1,45 @@
+trigger:
+- main
+
+pool:
+  name: Default # Use your self-hosted Windows agent pool name here
+
+variables:
+  python.version: '3.x'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies'
+
+- script: |
+    python -m robot --outputdir $(Build.ArtifactStagingDirectory) run_uds_test.robot
+  displayName: 'Run Robot Framework Tests'
+  continueOnError: true # Continue so we can publish results even if tests fail
+
+- script: |
+    copy uds_frames_log.xlsx $(Build.ArtifactStagingDirectory)
+    if exist canoe_write_log.txt copy canoe_write_log.txt $(Build.ArtifactStagingDirectory)
+  displayName: 'Copy Logs to Staging Directory'
+  condition: always() # Ensure logs are copied even if tests fail
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: '**/output.xml'
+    searchFolder: '$(Build.ArtifactStagingDirectory)'
+    testRunTitle: 'Robot Framework UDS Tests'
+    mergeTestResults: true
+  displayName: 'Publish Test Results'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'RobotFrameworkResults'
+    publishLocation: 'Container'
+  displayName: 'Publish Pipeline Artifacts'

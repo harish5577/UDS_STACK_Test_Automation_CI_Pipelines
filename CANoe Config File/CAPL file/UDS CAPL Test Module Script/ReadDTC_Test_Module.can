@@ -1,0 +1,928 @@
+/*@!Encoding:1252*/
+/***********************************************************************************************************************
+ *  DISCLAIMER
+ *  Copyright (C) 2011, 2016 Niyata Infotech Pvt. Ltd. All rights reserved.
+ ***********************************************************************************************************************/
+
+/************************************************************************************************************************
+ *  @author              Author : Harish R (harishr@niyatainfotech.com)
+ ***********************************************************************************************************************/
+
+/***********************************************************************************************************************
+ *                                  F I L E   D E S C R I P T I O N
+ **----------------------------------------------------------------------------------------------------------------------
+ *  @brief
+ *
+ *  File name                       : ReadDTC_Test_Module.can
+ *  Version                         : 1.0.1
+ *  Platforms supported             : CANoe
+ *  Description                     : CAPL Test Module for UDS ReadDTCInformation (SID 0x19)
+ *                                    Single TC covering all sub-functions and NRC tests.
+ *
+ *  Execution Flow inside TC_ID_01:
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  case  1  Session entry (10 01)
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x01  reportNumberOfDTCByStatusMask
+ *  case  2  Positive    03 19 01 29            -> 59 01
+ *  case  3  NRC 13      02 19 01 29            -> 7F 19 13
+ *  case  4  NRC 11      03 91 01 29            -> 7F 91 11
+ *  case  5  NRC 12      03 19 00 29            -> 7F 19 12
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x02  reportDTCByStatusMask
+ *  case  6  Positive    03 19 02 29            -> 59 02
+ *  case  7  NRC 13      02 19 02 00            -> 7F 19 13
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x03  reportDTCSnapshotIdentification
+ *  case  8  Positive    02 19 03               -> 59 03
+ *  case  9  NRC 13      03 19 03 29            -> 7F 19 13
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x0A  reportSupportedDTCs
+ *  case 10  Positive    02 19 0A               -> 59 0A
+ *  case 11  NRC 13      03 19 0A 21            -> 7F 19 13
+ *  case 12  NRC 11      02 91 0A               -> 7F 91 11
+ *  case 13  NRC 12      02 19 1A               -> 7F 19 12
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x08  reportDTCFaultDetectionCounter
+ *  case 14  Positive A  04 19 08 40 29         -> 59 08
+ *  case 15  Positive B  04 19 08 80 29         -> 59 08
+ *  case 16  NRC 11      04 09 08 40 21         -> 7F 09 11
+ *  case 17  NRC 11      04 09 08 80 21         -> 7F 09 11
+ *  case 18  NRC 12      04 19 00 40 21         -> 7F 19 12
+ *  case 19  NRC 12      04 19 FF 80 21         -> 7F 19 12
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x09  reportDTCExtDataRecordByRecordNumber  -- 44 DTCs
+ *  case 20  Iterator: 05 19 09 DTC[i]          -> 59 09  x44
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x04  reportDTCSnapshotRecordByDTCNumber RecordNum=0x02 -- 44 DTCs
+ *  case 21  Iterator: 06 19 04 DTC[i] 02       -> 59 04  x44
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x04  reportDTCSnapshotRecordByDTCNumber RecordNum=0x01 -- 44 DTCs
+ *  case 22  Iterator: 06 19 04 DTC[i] 01       -> 59 04  x44
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  sub 0x06  reportDTCExtDataRecordByDTCNumber ExtRN=0x00 -- 44 DTCs
+ *  case 23  Iterator: 06 19 06 DTC[i] 00       -> 59 06  x44
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  NRC comprehensive tests -- 30 frames
+ *  case 24  Iterator: NRC_Frames[i]            -> ExpectedNRC[i] x30
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *  default  Done - cancel timer
+ *  ─────────────────────────────────────────────────────────────────────────────
+ *
+ *  @bug
+ *--------------------------------------------------------------------------------------------------------------------*/
+
+/***********************************************************************************************************************
+ *                                      I N C L U D E   F I L E S
+ ***********************************************************************************************************************/
+includes
+{
+  #include "CAN_TP_FRAME.cin"
+}
+
+/***********************************************************************************************************************
+ *                               L O C A L   V A R I A B L E   D E F I N I T I O N S
+ ***********************************************************************************************************************/
+variables
+{
+  message 0x7E4 Dia_Req = {dlc = 8};
+  message 0x7EF Dia_Res = {dlc = 8};
+
+  const IDLE = 0x00;
+
+  /* 44 DTCs [DTC_HIGH][DTC_MID][DTC_STATUS] */
+  byte DtcList[44][3] =
+  {
+    {0x11,0x00,0x86},{0x11,0x01,0x81},
+    {0x12,0x00,0x14},{0x12,0x01,0x15},{0x12,0x02,0x14},{0x12,0x03,0x15},
+    {0x12,0x04,0x98},{0x12,0x05,0x14},{0x12,0x06,0x15},{0x12,0x07,0x98},
+    {0x12,0x08,0xF0},{0x12,0x09,0x98},{0x12,0x0A,0xF0},
+    {0x13,0x00,0x19},{0x13,0x01,0x19},{0x13,0x02,0x19},{0x13,0x03,0x19},
+    {0x13,0x04,0x14},{0x13,0x05,0x15},{0x13,0x06,0x14},{0x13,0x07,0x15},
+    {0x13,0x08,0x14},{0x13,0x09,0x15},{0x13,0x0A,0x1C},
+    {0x14,0x00,0x17},{0x14,0x01,0x16},{0x14,0x02,0x14},{0x14,0x03,0x15},
+    {0x15,0x00,0x15},{0x15,0x01,0x14},{0x15,0x02,0x14},{0x15,0x03,0x15},
+    {0x15,0x04,0x17},{0x15,0x05,0x16},
+    {0x16,0x00,0x71},{0x16,0x01,0xF1},{0x16,0x02,0x54},
+    {0x17,0x00,0x14},{0x17,0x01,0x15},{0x17,0x02,0x1C},{0x17,0x03,0x1C},
+    {0x18,0x00,0x1F},{0x18,0x01,0x1F},{0x18,0x02,0xF2}
+  };
+
+  /* 30 NRC test frames [8 bytes each] */
+  byte NRC_Frames[30][8] =
+  {
+    {0x02,0x19,0x02,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x00,0x29,0x00,0x00,0x00,0x00},
+    {0x02,0x18,0x03,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x03,0x29,0x00,0x00,0x00,0x00},
+    {0x02,0x09,0x03,0x00,0x00,0x00,0x00,0x00},
+    {0x02,0x19,0x00,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x0A,0x21,0x00,0x00,0x00,0x00},
+    {0x02,0x91,0x0A,0x00,0x00,0x00,0x00,0x00},
+    {0x02,0x19,0x1A,0x00,0x00,0x00,0x00,0x00},
+    {0x05,0x19,0x09,0x11,0x00,0x85,0x00,0x00},
+    {0x05,0x21,0x09,0x11,0x00,0x86,0x00,0x00},
+    {0x05,0x19,0xFF,0x11,0x00,0x86,0x00,0x00},
+    {0x06,0x19,0x09,0x11,0x00,0x86,0x21,0x00},
+    {0x06,0x19,0x04,0x11,0x00,0x86,0x00,0x00},
+    {0x06,0x21,0x04,0x11,0x00,0x86,0x02,0x00},
+    {0x06,0x19,0x00,0x11,0x00,0x86,0x02,0x00},
+    {0x07,0x19,0x04,0x11,0x00,0x86,0x02,0x10},
+    {0x05,0x19,0x08,0x40,0x21,0x40,0x00,0x00},
+    {0x05,0x19,0x08,0x80,0x21,0x40,0x00,0x00},
+    {0x04,0x09,0x08,0x40,0x21,0x00,0x00,0x00},
+    {0x04,0x09,0x08,0x80,0x21,0x00,0x00,0x00},
+    {0x04,0x19,0x00,0x40,0x21,0x00,0x00,0x00},
+    {0x04,0x19,0xFF,0x80,0x21,0x00,0x00,0x00},
+    {0x06,0x09,0x06,0x18,0x01,0x1F,0x00,0x00},
+    {0x06,0x19,0x20,0x18,0x01,0x1F,0x00,0x00},
+    {0x07,0x19,0x06,0x18,0x01,0x1F,0x29,0x00},
+    {0x06,0x19,0x06,0x18,0x02,0xF3,0x00,0x00},
+    {0x06,0x09,0x04,0x11,0x00,0x86,0x01,0x00},
+    {0x06,0x19,0x00,0x11,0x00,0x86,0x01,0x00},
+    {0x07,0x19,0x04,0x11,0x00,0x86,0x01,0x10}
+  };
+
+  /* Expected NRC per NRC_Frames[] entry
+   *   0x11 -> SID_19 == 12 or 16  (serviceNotSupported)
+   *   0x12 -> SID_19 == 13        (subFunctionNotSupported)
+   *   0x13 -> SID_19 == 14        (incorrectMessageLength)
+   *   0x31 -> SID_19 == 15        (requestOutOfRange)
+   *   0x99 -> SID_19 == 9         (positive 59 08 expected) */
+  byte ExpectedNRC[30] =
+  {
+    0x13,0x12,0x11,0x13,0x11,0x13,0x13,0x11,0x12,0x31,
+    0x11,0x12,0x13,0x31,0x11,0x12,0x13,0x99,0x99,0x11,
+    0x11,0x12,0x12,0x11,0x12,0x13,0x31,0x11,0x12,0x13
+  };
+
+  char NRC_Desc[30][70] =
+  {
+    "sub 0x02 - incorrectMsgLen (DLC=2, missing statusMask)",
+    "sub 0x00 - subFunctionNotSupported with extra byte",
+    "SID 0x18 - serviceNotSupported",
+    "sub 0x03 - incorrectMsgLen (extra byte)",
+    "SID 0x09 - serviceNotSupported",
+    "sub 0x00 - incorrectMsgLen (DLC=2)",
+    "sub 0x0A - incorrectMsgLen (extra byte 0x21)",
+    "SID 0x91 - serviceNotSupported",
+    "sub 0x1A - subFunctionNotSupported",
+    "sub 0x09, DTC 110085 not in list - requestOutOfRange",
+    "SID 0x21 sub 0x09 - serviceNotSupported",
+    "sub 0xFF - subFunctionNotSupported",
+    "sub 0x09 - incorrectMsgLen (extra byte 0x21)",
+    "sub 0x04, recordNum 0x00 - requestOutOfRange",
+    "SID 0x21 sub 0x04 - serviceNotSupported",
+    "sub 0x00 with DTC - subFunctionNotSupported",
+    "sub 0x04 - incorrectMsgLen (extra byte 0x10)",
+    "sub 0x08 mask 40 21 40 - Positive response expected",
+    "sub 0x08 mask 80 21 40 - Positive response expected",
+    "SID 0x09 sub 0x08 mask 40 - serviceNotSupported",
+    "SID 0x09 sub 0x08 mask 80 - serviceNotSupported",
+    "sub 0x00 with mask 40 - subFunctionNotSupported",
+    "sub 0xFF with mask 80 - subFunctionNotSupported",
+    "SID 0x09 sub 0x06 - serviceNotSupported",
+    "sub 0x20 - subFunctionNotSupported",
+    "sub 0x06 - incorrectMsgLen (extra byte 0x29)",
+    "sub 0x06, DTC 1802F3 not in list - requestOutOfRange",
+    "SID 0x09 sub 0x04 - serviceNotSupported",
+    "sub 0x00 with DTC+RN - subFunctionNotSupported",
+    "sub 0x04 - incorrectMsgLen (extra byte 0x10)"
+  };
+
+  /* Single timer */
+  msTimer Timer19;
+
+  /* Single state counter */
+  byte READ_DTC = 0;
+
+  /* Response state variable (decoded in on message 0x7EF)
+   *   0  = no match / unknown
+   *   1  = 50 01  defaultSession positive
+   *   2  = 50 02  programmingSession positive
+   *   3  = 50 03  extendedSession positive
+   *   4  = 59 01  reportNumberOfDTCByStatusMask
+   *   5  = 59 02  reportDTCByStatusMask
+   *   6  = 59 03  reportDTCSnapshotIdentification
+   *   7  = 59 04  reportDTCSnapshotRecordByDTCNumber
+   *   8  = 59 06  reportDTCExtDataRecordByDTCNumber
+   *   9  = 59 08  reportDTCFaultDetectionCounter
+   *  10  = 59 09  reportDTCExtDataRecordByRecordNumber
+   *  11  = 59 0A  reportSupportedDTCs
+   *  12  = 7F 19 11  NRC serviceNotSupported (correct SID)
+   *  13  = 7F 19 12  NRC subFunctionNotSupported
+   *  14  = 7F 19 13  NRC incorrectMessageLength
+   *  15  = 7F 19 31  NRC requestOutOfRange
+   *  16  = 7F XX 11  NRC serviceNotSupported (wrong SID) */
+  byte SID_19 = 0;
+
+  /* Shared iteration counters */
+  int  DtcIndex   = 0;
+  int  NrcIndex   = 0;
+
+  /* Phase pass/fail accumulators */
+  int  Phase_pass = 0;
+  int  Phase_fail = 0;
+
+  char Buffer[200];
+}
+
+/***********************************************************************************************************************
+ *                                     M A I N   T E S T   F U N C T I O N
+ ***********************************************************************************************************************/
+void MainTest()
+{
+  ProjectInfo();
+  Init();
+  TC_ID_01();
+}
+
+void ProjectInfo()
+{
+  TestModuleDescription("ReadDTCInformation_UDS_0x19");
+  TestReportAddEngineerInfo("Company",     "Niyata Infotech Pvt Ltd.");
+  TestReportAddEngineerInfo("Tester name", "Harish R");
+  TestReportAddSetupInfo   ("MCU",         "TMS570LC43xx");
+  TestReportAddSetupInfo   ("IDE",         "Code Composer Studio");
+  TestReportAddSUTInfo     ("SUT",         "UDS SID 0x19 - ReadDTCInformation");
+}
+
+/***********************************************************************************************************************
+ *                                     S I N G L E   T E S T C A S E
+ ***********************************************************************************************************************/
+testcase TC_ID_01()
+{
+  TestCaseTitle("1", "ReadDTCInformation (SID 0x19) - Full Coverage");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("12.3 ReadDTCInformation (19h) - All sub-functions + NRC tests");
+
+  setTimer(Timer19, 1000);
+  ReadDTCInformation();
+}
+
+/***********************************************************************************************************************
+ *                                       T I M E R
+ ***********************************************************************************************************************/
+on timer Timer19
+{
+  ReadDTCInformation();
+}
+
+/***********************************************************************************************************************
+ *                                       H E L P E R   F U N C T I O N S
+ ***********************************************************************************************************************/
+void Init()
+{
+  frame_receive.dlc = 8;
+  frame_transmit.dlc = 8;
+  setTimer(TP_Timer, 0, TP_TASK_RATE_IN_MICRO_SECONDS * 1000);
+  write("ReadDTCInformation Test Module Ready");
+}
+
+void Send_Diag_Request(byte dlc, byte service_id, byte sub_function,
+                       byte byte3, byte byte4, byte byte5, byte byte6, byte byte7)
+{
+  Dia_Req.byte(0) = dlc;
+  Dia_Req.byte(1) = service_id;
+  Dia_Req.byte(2) = sub_function;
+  Dia_Req.byte(3) = byte3;
+  Dia_Req.byte(4) = byte4;
+  Dia_Req.byte(5) = byte5;
+  Dia_Req.byte(6) = byte6;
+  Dia_Req.byte(7) = byte7;
+  output(Dia_Req);
+  write("TX: %02X %02X %02X %02X %02X %02X %02X %02X",
+        dlc, service_id, sub_function, byte3, byte4, byte5, byte6, byte7);
+}
+
+void Send_Raw_Frame(byte frame[])
+{
+  int i;
+  for (i = 0; i < 8; i++) Dia_Req.byte(i) = frame[i];
+  output(Dia_Req);
+  write("TX_RAW: %02X %02X %02X %02X %02X %02X %02X %02X",
+        frame[0],frame[1],frame[2],frame[3],
+        frame[4],frame[5],frame[6],frame[7]);
+}
+
+/***********************************************************************************************************************
+ *                              M A I N   S T A T E   M A C H I N E
+ *
+ *  Single function driven by READ_DTC counter.
+ *  Iterator phases (cases 20-24) use  READ_DTC--  to stay in the
+ *  same case until the full DTC/NRC array is exhausted.
+ ***********************************************************************************************************************/
+void ReadDTCInformation()
+{
+  setTimer(Timer19, 1000);
+  READ_DTC++;
+
+  switch (READ_DTC)
+  {
+    /*────────────────────────────────────────────────────────────────
+     * case 1 — Session entry: 10 01
+     *──────────────────────────────────────────────────────────────*/
+    case 1:
+      Send_Diag_Request(0x02, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "10.2.2.2 Request message SubFunction - defaultSession");
+      testStep("", "10 01");
+      if (SID_19 == 1)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * sub 0x01 reportNumberOfDTCByStatusMask
+     *──────────────────────────────────────────────────────────────*/
+
+    /* case 2 — Positive: 03 19 01 29 */
+    case 2:
+      Send_Diag_Request(0x03, 0x19, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x01 - reportNumberOfDTCByStatusMask");
+      testStep("", "19 01 29 (statusMask=0x29 : confirmed+pending+currentDTC)");
+      if (SID_19 == 4)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 3 — NRC 13: DLC=2, missing statusMask */
+    case 3:
+      Send_Diag_Request(0x02, 0x19, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x01, DLC=2)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 4 — NRC 11: wrong SID 0x91 */
+    case 4:
+      Send_Diag_Request(0x03, 0x91, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x91)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 5 — NRC 12: sub=0x00 not supported */
+    case 5:
+      Send_Diag_Request(0x03, 0x19, 0x00, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x00)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * sub 0x02 reportDTCByStatusMask
+     *──────────────────────────────────────────────────────────────*/
+
+    /* case 6 — Positive: 03 19 02 29 */
+    case 6:
+      Send_Diag_Request(0x03, 0x19, 0x02, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x02 - reportDTCByStatusMask");
+      testStep("", "19 02 29 (statusMask=0x29)");
+      if (SID_19 == 5)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 7 — NRC 13: DLC=2, missing statusMask */
+    case 7:
+      Send_Diag_Request(0x02, 0x19, 0x02, 0x00, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x02, DLC=2)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * sub 0x03 reportDTCSnapshotIdentification
+     *──────────────────────────────────────────────────────────────*/
+
+    /* case 8 — Positive: 02 19 03 */
+    case 8:
+      Send_Diag_Request(0x02, 0x19, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x03 - reportDTCSnapshotIdentification");
+      testStep("", "19 03");
+      if (SID_19 == 6)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 9 — NRC 13: extra byte */
+    case 9:
+      Send_Diag_Request(0x03, 0x19, 0x03, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x03, extra byte 0x29)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * sub 0x0A reportSupportedDTCs
+     *──────────────────────────────────────────────────────────────*/
+
+    /* case 10 — Positive: 02 19 0A */
+    case 10:
+      Send_Diag_Request(0x02, 0x19, 0x0A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x0A - reportSupportedDTCs");
+      testStep("", "19 0A");
+      if (SID_19 == 11)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 11 — NRC 13: extra byte 0x21 */
+    case 11:
+      Send_Diag_Request(0x03, 0x19, 0x0A, 0x21, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x0A, extra byte 0x21)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 12 — NRC 11: SID=0x91 */
+    case 12:
+      Send_Diag_Request(0x02, 0x91, 0x0A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x91)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 13 — NRC 12: sub=0x1A */
+    case 13:
+      Send_Diag_Request(0x02, 0x19, 0x1A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x1A)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * sub 0x08 reportDTCFaultDetectionCounter
+     *──────────────────────────────────────────────────────────────*/
+
+    /* case 14 — Positive A: mask=0x40, group=0x29 */
+    case 14:
+      Send_Diag_Request(0x04, 0x19, 0x08, 0x40, 0x29, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x08 - reportDTCFaultDetectionCounter");
+      testStep("", "19 08 40 29 (DTCStatusAvailabilityMask=0x40, group=0x29)");
+      if (SID_19 == 9)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 15 — Positive B: mask=0x80, group=0x29 */
+    case 15:
+      Send_Diag_Request(0x04, 0x19, 0x08, 0x80, 0x29, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x08 - reportDTCFaultDetectionCounter");
+      testStep("", "19 08 80 29 (DTCStatusAvailabilityMask=0x80, group=0x29)");
+      if (SID_19 == 9)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 16 — NRC 11: SID=0x09, mask=0x40 */
+    case 16:
+      Send_Diag_Request(0x04, 0x09, 0x08, 0x40, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x09, mask=0x40)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 17 — NRC 11: SID=0x09, mask=0x80 */
+    case 17:
+      Send_Diag_Request(0x04, 0x09, 0x08, 0x80, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x09, mask=0x80)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 18 — NRC 12: sub=0x00, mask=0x40 */
+    case 18:
+      Send_Diag_Request(0x04, 0x19, 0x00, 0x40, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x00, mask=0x40)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 19 — NRC 12: sub=0xFF, mask=0x80 */
+    case 19:
+      Send_Diag_Request(0x04, 0x19, 0xFF, 0x80, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0xFF, mask=0x80)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * case 20 — sub 0x09 reportDTCExtDataRecordByRecordNumber
+     *           05 19 09 DTC[i][0] DTC[i][1] DTC[i][2]  x44
+     *──────────────────────────────────────────────────────────────*/
+    case 20:
+      if (DtcIndex == 0)
+      {
+        testStep("", "12.3.2.2 sub 0x09 - reportDTCExtDataRecordByRecordNumber (44 DTCs)");
+        Phase_pass = 0;
+        Phase_fail = 0;
+      }
+
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x05, 0x19, 0x09,
+                          DtcList[DtcIndex][0],
+                          DtcList[DtcIndex][1],
+                          DtcList[DtcIndex][2],
+                          IDLE, IDLE);
+        testWaitForTimeout(900);
+
+        snprintf(Buffer, elcount(Buffer),
+                 "19 09 %02X %02X %02X  [DTC %d / 44]",
+                 DtcList[DtcIndex][0],
+                 DtcList[DtcIndex][1],
+                 DtcList[DtcIndex][2],
+                 DtcIndex + 1);
+        testStep("", Buffer);
+
+        if (SID_19 == 10)
+        { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else
+        { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); Phase_fail++; }
+
+        DtcIndex++;
+        READ_DTC--;          /* stay at case 20 for next DTC */
+        ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer),
+                 "sub 0x09 complete - %d PASS / %d FAIL (44 DTCs)", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x09", Buffer);
+        if (Phase_fail == 0) testStepPass("ALL PASS");
+        else                 testStepFail("SOME FAIL");
+        DtcIndex = 0;
+        ReadDTCInformation();   /* advance to case 21 */
+      }
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * case 21 — sub 0x04 RecordNum=0x02
+     *           06 19 04 DTC[i][0] DTC[i][1] DTC[i][2] 02  x44
+     *──────────────────────────────────────────────────────────────*/
+    case 21:
+      if (DtcIndex == 0)
+      {
+        testStep("", "12.3.2.2 sub 0x04 RN=0x02 - reportDTCSnapshotRecordByDTCNumber (44 DTCs)");
+        Phase_pass = 0;
+        Phase_fail = 0;
+      }
+
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x04,
+                          DtcList[DtcIndex][0],
+                          DtcList[DtcIndex][1],
+                          DtcList[DtcIndex][2],
+                          0x02, IDLE);
+        testWaitForTimeout(900);
+
+        snprintf(Buffer, elcount(Buffer),
+                 "19 04 %02X %02X %02X 02  [DTC %d / 44, RecordNum=0x02]",
+                 DtcList[DtcIndex][0],
+                 DtcList[DtcIndex][1],
+                 DtcList[DtcIndex][2],
+                 DtcIndex + 1);
+        testStep("", Buffer);
+
+        if (SID_19 == 7)
+        { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else
+        { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); Phase_fail++; }
+
+        DtcIndex++;
+        READ_DTC--;
+        ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer),
+                 "sub 0x04 RN=02 complete - %d PASS / %d FAIL (44 DTCs)", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x04 RN=02", Buffer);
+        if (Phase_fail == 0) testStepPass("ALL PASS");
+        else                 testStepFail("SOME FAIL");
+        DtcIndex = 0;
+        ReadDTCInformation();
+      }
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * case 22 — sub 0x04 RecordNum=0x01
+     *           06 19 04 DTC[i][0] DTC[i][1] DTC[i][2] 01  x44
+     *──────────────────────────────────────────────────────────────*/
+    case 22:
+      if (DtcIndex == 0)
+      {
+        testStep("", "12.3.2.2 sub 0x04 RN=0x01 - reportDTCSnapshotRecordByDTCNumber (44 DTCs)");
+        Phase_pass = 0;
+        Phase_fail = 0;
+      }
+
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x04,
+                          DtcList[DtcIndex][0],
+                          DtcList[DtcIndex][1],
+                          DtcList[DtcIndex][2],
+                          0x01, IDLE);
+        testWaitForTimeout(900);
+
+        snprintf(Buffer, elcount(Buffer),
+                 "19 04 %02X %02X %02X 01  [DTC %d / 44, RecordNum=0x01]",
+                 DtcList[DtcIndex][0],
+                 DtcList[DtcIndex][1],
+                 DtcList[DtcIndex][2],
+                 DtcIndex + 1);
+        testStep("", Buffer);
+
+        if (SID_19 == 7)
+        { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else
+        { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); Phase_fail++; }
+
+        DtcIndex++;
+        READ_DTC--;
+        ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer),
+                 "sub 0x04 RN=01 complete - %d PASS / %d FAIL (44 DTCs)", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x04 RN=01", Buffer);
+        if (Phase_fail == 0) testStepPass("ALL PASS");
+        else                 testStepFail("SOME FAIL");
+        DtcIndex = 0;
+        ReadDTCInformation();
+      }
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * case 23 — sub 0x06 ExtRN=0x00
+     *           06 19 06 DTC[i][0] DTC[i][1] DTC[i][2] 00  x44
+     *──────────────────────────────────────────────────────────────*/
+    case 23:
+      if (DtcIndex == 0)
+      {
+        testStep("", "12.3.2.2 sub 0x06 ExtRN=0x00 - reportDTCExtDataRecordByDTCNumber (44 DTCs)");
+        Phase_pass = 0;
+        Phase_fail = 0;
+      }
+
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x06,
+                          DtcList[DtcIndex][0],
+                          DtcList[DtcIndex][1],
+                          DtcList[DtcIndex][2],
+                          0x00, IDLE);
+        testWaitForTimeout(900);
+
+        snprintf(Buffer, elcount(Buffer),
+                 "19 06 %02X %02X %02X 00  [DTC %d / 44, ExtDataRecordNum=0x00]",
+                 DtcList[DtcIndex][0],
+                 DtcList[DtcIndex][1],
+                 DtcList[DtcIndex][2],
+                 DtcIndex + 1);
+        testStep("", Buffer);
+
+        if (SID_19 == 8)
+        { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else
+        { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); Phase_fail++; }
+
+        DtcIndex++;
+        READ_DTC--;
+        ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer),
+                 "sub 0x06 complete - %d PASS / %d FAIL (44 DTCs)", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x06", Buffer);
+        if (Phase_fail == 0) testStepPass("ALL PASS");
+        else                 testStepFail("SOME FAIL");
+        DtcIndex = 0;
+        ReadDTCInformation();
+      }
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * case 24 — NRC Comprehensive (30 frames)
+     *──────────────────────────────────────────────────────────────*/
+    case 24:
+      if (NrcIndex == 0)
+      {
+        testStep("", "12.3.4 NRC Comprehensive - 30 Negative Test Frames");
+        Phase_pass = 0;
+        Phase_fail = 0;
+      }
+
+      if (NrcIndex < 30)
+      {
+        byte expNRC;
+        byte ok;
+
+        Send_Raw_Frame(NRC_Frames[NrcIndex]);
+        testWaitForTimeout(900);
+
+        expNRC = ExpectedNRC[NrcIndex];
+
+        if      (expNRC == 0x11) ok = ((SID_19 == 12)||(SID_19 == 16)) ? 1 : 0;
+        else if (expNRC == 0x12) ok = (SID_19 == 13) ? 1 : 0;
+        else if (expNRC == 0x13) ok = (SID_19 == 14) ? 1 : 0;
+        else if (expNRC == 0x31) ok = (SID_19 == 15) ? 1 : 0;
+        else                     ok = (SID_19 == 9)  ? 1 : 0;  /* 0x99: positive 59 08 */
+
+        snprintf(Buffer, elcount(Buffer), "[Frame %02d] %s", NrcIndex + 1, NRC_Desc[NrcIndex]);
+        testStep("", Buffer);
+
+        if (expNRC == 0x99)
+          snprintf(Buffer, elcount(Buffer), "Expected: Positive 59 08");
+        else
+          snprintf(Buffer, elcount(Buffer), "Expected NRC: 0x%02X", expNRC);
+        testStep("", Buffer);
+
+        snprintf(Buffer, elcount(Buffer),
+                 "TX: %02X %02X %02X %02X %02X %02X %02X %02X",
+                 NRC_Frames[NrcIndex][0], NRC_Frames[NrcIndex][1],
+                 NRC_Frames[NrcIndex][2], NRC_Frames[NrcIndex][3],
+                 NRC_Frames[NrcIndex][4], NRC_Frames[NrcIndex][5],
+                 NRC_Frames[NrcIndex][6], NRC_Frames[NrcIndex][7]);
+        testStep("", Buffer);
+
+        if (ok)
+        { testStepPass("PASS"); TestReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else
+        { testStepFail("FAIL"); TestReportAddWindowCapture("Trace","",""); Phase_fail++; }
+
+        NrcIndex++;
+        READ_DTC--;          /* stay at case 24 for next NRC frame */
+        ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer),
+                 "NRC tests complete - %d PASS / %d FAIL (30 frames)", Phase_pass, Phase_fail);
+        testStep("Summary NRC", Buffer);
+        if (Phase_fail == 0) testStepPass("ALL PASS");
+        else                 testStepFail("SOME FAIL");
+        NrcIndex = 0;
+        ReadDTCInformation();   /* advance to default -> done */
+      }
+      break;
+
+    /*────────────────────────────────────────────────────────────────
+     * default — all phases complete
+     *──────────────────────────────────────────────────────────────*/
+    default:
+      READ_DTC = 0;
+      cancelTimer(Timer19);
+      break;
+  }
+}
+
+/***********************************************************************************************************************
+ *                                     C A N   E V E N T   H A N D L E R
+ ***********************************************************************************************************************/
+on message 0x7EF
+{
+  /* DiagnosticSessionControl positive (50 XX) */
+  if      ((this.byte(0)==0x06)&&(this.byte(1)==0x50)&&(this.byte(2)==0x01)) { SID_19 = 1;  }
+  else if ((this.byte(0)==0x06)&&(this.byte(1)==0x50)&&(this.byte(2)==0x02)) { SID_19 = 2;  }
+  else if ((this.byte(0)==0x06)&&(this.byte(1)==0x50)&&(this.byte(2)==0x03)) { SID_19 = 3;  }
+
+  /* ReadDTCInformation positive (59 XX) */
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x01)) { SID_19 = 4;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x02)) { SID_19 = 5;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x03)) { SID_19 = 6;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x04)) { SID_19 = 7;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x06)) { SID_19 = 8;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x08)) { SID_19 = 9;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x09)) { SID_19 = 10; }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x0A)) { SID_19 = 11; }
+
+  /* Negative response 7F 19 NRC (correct SID) */
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x11)) { SID_19 = 12; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x12)) { SID_19 = 13; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x13)) { SID_19 = 14; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x31)) { SID_19 = 15; }
+
+  /* Negative response 7F XX 11 (wrong SID in request) */
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(3)==0x11)&&(this.byte(2)!=0x19)) { SID_19 = 16; }
+
+  else { SID_19 = 0; }
+
+  /* CAN TP pass-through */
+  loop = 0;
+  for (loop = 0; loop < MAX_DLC; loop++)
+  {
+    frame_receive.byte(loop) = this.byte(loop);
+  }
+  if ((this.byte(0) & 0xF0) == 0x30)
+  {
+    if (TP_State[TP_TX].TP_State == TP_FLOW_CONTROL_STATE)
+      TP_FlowControlReceived = 1;
+    else
+      write(" CAN_TP Unexpected frame received...OK");
+  }
+  else
+  {
+    TP_Receive(MAX_DLC);
+  }
+}
+
+/***********************************************************************************************************************
+ *                                  R E V I S I O N   H I S T O R Y
+ ***********************************************************************************************************************
+  REVISION NUMBER      : V1.0.1
+  REVISION DATE        : 18/03/2026
+  CREATED / REVISED BY : Harish R (harishr@niyatainfotech.com)
+  DESCRIPTION          : Consolidated all sub-function and NRC tests into a single
+                         TC_ID_01 using one switch/case state machine (READ_DTC counter).
+                         DTC iterator phases (cases 20-23) and NRC phase (case 24) use
+                         READ_DTC-- to repeat the same case until the array is exhausted.
+                         Summary testStep printed after each iterator phase.
+------------------------------------------------------------------------------------------------------------------------
+***********************************************************************************************************************/

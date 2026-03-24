@@ -1,0 +1,419 @@
+/*@!Encoding:1252*/
+includes
+{
+  
+}
+
+variables
+{
+  timer TP_Timer;
+  
+  const int TP_TASK_RATE_IN_MICRO_SECONDS = 250;
+  
+	const int SINGLE_FRAME_OFFSET = 1;
+  
+	const int FIRST_FRAME_OFFSET = 2;
+  
+	const int CONSECUTIVE_FRAME_OFFSET = 1;
+  
+	const int FIRST_FRAME_DATA_LENGTH = 6;
+  
+	const int MAX_DLC = 8;
+  
+	const byte PADDING_BYTES = 0xFF;
+  
+	const byte CF_SEQUENCECOUNTER_START_WITH = 1;
+
+	enum TP_Modes
+	{
+		TP_RX = 0,
+		TP_TX,
+		TP_MAX
+	};
+
+	enum	TP_States
+	{
+		TP_IDLE,
+		TP_FIRST_FRAME_STATE,
+		TP_FLOW_CONTROL_STATE,
+		TP_CONCECUTIVE_FRAME_STATE,
+		TP_MAX_STATE
+	};
+
+	struct TP_Details_St
+	{
+		long TP_TotalBytes;
+		long TP_CompletedBytes;
+		byte TP_State;
+		byte TP_SequenceCounter;
+		byte TP_BlockCounter;
+	};
+
+	/* VARIABLES */
+	long Transmit_length = 0;
+  
+	int Data_Received;
+  
+	int DataConfirmation;
+  
+	int TP_FlowControlReceived = 0;
+  
+  int Rx_loop = 0;
+  
+	byte TransmitValue[4096];
+  
+	byte Received_Frame[2048];
+  
+	message 0x7E4 frame_transmit;
+  
+  message 0x7E4 frame_start;
+  
+	message 0x7EF frame_receive;
+
+	/* TP FRAME DETAILS */
+	struct TP_Details_St TP_State[TP_MAX] = 
+	{
+		{0, 0, TP_IDLE, CF_SEQUENCECOUNTER_START_WITH, 0},
+		{0, 0, TP_IDLE, CF_SEQUENCECOUNTER_START_WITH, 0}
+	};
+
+	int RemaingBytes = 0;
+  
+	byte loop = 0;
+  
+	byte Copybytes = 0;
+  
+	byte Result = 0;
+  
+	byte EndOfChunk = 0;
+  
+  byte requestData[8];
+  
+  byte responseData[8];
+}
+
+on timer TP_Timer
+{
+  TP_MainFunction();
+  
+  setTimer(TP_Timer, 0, TP_TASK_RATE_IN_MICRO_SECONDS*1000);
+}
+
+void TP_MainFunction(void)
+{
+	TP_TxMainFunction();
+  
+	TP_RxMainFunction();
+}
+
+void TP_TxMainFunction(void)
+{
+	/* LOCAL VARIABLE */
+	RemaingBytes = 0;
+  
+	loop = 0;
+  
+	Copybytes = 0;
+  
+	EndOfChunk = 0;
+  
+	/* CHECK FOR THE CURRENT STATUS */
+	switch(TP_State[TP_TX].TP_State)
+	{
+		case TP_IDLE:
+     
+		break;
+		case TP_FIRST_FRAME_STATE:
+     
+			/* COPY DATA TO THE BUFFER */
+			for(loop = 0; loop < FIRST_FRAME_DATA_LENGTH; loop++)
+			{
+				/* COPY DATA TO THE DESTINATION LOCATION */
+				frame_transmit.byte((loop + FIRST_FRAME_OFFSET)) = TransmitValue[loop];
+			}
+
+			/* FILL THE FRAME TYPE AND LENGTH DATA */
+			frame_transmit.byte(0) = 0;																		/* CLEAR BEFORE DOING ANYTHING */
+      
+			frame_transmit.byte(0) = (0x10 | ((TP_State[TP_TX].TP_TotalBytes >> 8) & 0x0F));	/* COPY THE SIZE */
+      
+			frame_transmit.byte(1) = (TP_State[TP_TX].TP_TotalBytes & 0xFF);						/* COPY THE REMAINNG BYTES */
+
+			/* CALCULATE THE TOTAL DATA BYTES TRANSMITTED */
+			TP_State[TP_TX].TP_CompletedBytes += FIRST_FRAME_DATA_LENGTH;
+
+			/* CHANGE STATE TO FLOW CONTROL STATE */
+			TP_State[TP_TX].TP_State = TP_FLOW_CONTROL_STATE;
+      
+			/* SEND TRANSMIT DATA TO THE CAN BUS */
+			output(frame_transmit);
+      
+		break;
+		case TP_FLOW_CONTROL_STATE:
+			/* CHECK FOR THE FLOW CONTROL RECIEVED FLAG */
+			if(TP_FlowControlReceived == 1)
+			{
+				/* CLEAR THE FLAG */
+				TP_FlowControlReceived = 0;
+ 
+				/* CHANGE STATE TO FLOW CONTROL STATE */
+				TP_State[TP_TX].TP_State = TP_CONCECUTIVE_FRAME_STATE;
+			}
+		break;
+		case TP_CONCECUTIVE_FRAME_STATE:
+			/* CLEAR DATA BUFFER WITH PADDING VALUE */
+			for(loop = 0; loop < MAX_DLC; loop++)
+			{
+				/* SET PADDING BYTES TO THE BUFFER */
+				frame_transmit.byte(loop) = PADDING_BYTES;
+			}
+
+			/* GET THE REMAINING BYTES */
+			RemaingBytes = (TP_State[TP_TX].TP_TotalBytes - TP_State[TP_TX].TP_CompletedBytes);
+
+			/* CHECK IF THE REMAINING BYTES IS THE LAST CHUNK */
+			if(RemaingBytes > 7)
+			{
+				/* SET COPY BYTES AS 7 - WHICH IS MAXIMUM ALLOWED BYTES IN CONSEQUNCE MEMORY */
+				Copybytes = 7;
+			}
+			else
+			{
+				/* SET THE CHUNK END FLAG TO CLEAR THE DATA FOR THE NEXT ITERATION */
+				EndOfChunk = 1;
+
+				/* SET THE COPY BYTES FOR ONLY RECIEVED BYTES */
+				Copybytes = RemaingBytes;
+			}
+
+			/* COPY DATA TO THE BUFFER */
+			for(loop = 0; loop < Copybytes; loop++)
+			{
+				/* COPY DATA TO THE DESTINATION LOCATION */
+				frame_transmit.byte((loop + CONSECUTIVE_FRAME_OFFSET)) = TransmitValue[(TP_State[TP_TX].TP_CompletedBytes + loop)];
+			}
+			/* FILL THE FRAME TYPE AND SEQUENCE COUNTER TO THE FRAME */
+			frame_transmit.byte(0) = 0;
+      
+			frame_transmit.byte(0) = (0x20 | (TP_State[TP_TX].TP_SequenceCounter & 0x0F));
+
+			/* INCREMENT THE SEQUENCE COUNTER */
+			TP_State[TP_TX].TP_SequenceCounter++;
+
+			/* CHECK IF THE SEQUENCE COUNTER REACHES LIMIT */
+			if(TP_State[TP_TX].TP_SequenceCounter > 0x0F)
+			{
+				/* RELOAD VALUE WITH ZERO */
+				TP_State[TP_TX].TP_SequenceCounter = 0;
+			}
+
+			/* ACCUMULATE COPIED BYTES TO THE COMPLETED BYTES */
+			TP_State[TP_TX].TP_CompletedBytes += Copybytes;
+      
+			/* SEND DATA TO CAN BUS */
+			output(frame_transmit);
+  
+			/* CHECK WHETHER IT IS END OF CHUNK - IF IT IS THEN CLEAR THE DATA FOR NEXT ITERATION */
+			if(EndOfChunk == 1)
+			{
+				EndOfChunk = 0;
+				/* CHANGE STATE TO FLOW CONTROL STATE */
+				TP_State[TP_TX].TP_State = TP_IDLE;
+        
+				TP_State[TP_TX].TP_CompletedBytes = 0;
+        
+				TP_State[TP_TX].TP_TotalBytes = 0;
+        
+				TP_State[TP_TX].TP_BlockCounter = 0;
+        
+				TP_State[TP_TX].TP_SequenceCounter = CF_SEQUENCECOUNTER_START_WITH;
+			}
+
+		break;
+		default:
+		break;
+	}
+}
+
+void TP_RxMainFunction(void)
+{
+	/* CHECK FOR THE CURRENT STATUS */
+	switch(TP_State[TP_RX].TP_State)
+	{
+		case TP_IDLE:
+		break;
+		case TP_FIRST_FRAME_STATE:
+			/* COPY DATA TO THE BUFFER */
+			for(Rx_loop = 0; Rx_loop < FIRST_FRAME_DATA_LENGTH; Rx_loop++)
+			{
+				/* COPY DATA TO THE DESTINATION LOCATION */
+				Received_Frame[Rx_loop] = frame_receive.byte((Rx_loop + FIRST_FRAME_OFFSET));
+			}
+
+			/* FILL THE FRAME TYPE AND LENGTH DATA */
+			TP_State[TP_RX].TP_TotalBytes = 0;
+			TP_State[TP_RX].TP_TotalBytes |= ((( frame_receive.byte(0) & 0x0F) << 8) | (frame_receive.byte(1)));
+
+			/* CALCULATE THE TOTAL DATA BYTES TRANSMITTED */
+			TP_State[TP_RX].TP_CompletedBytes += (FIRST_FRAME_DATA_LENGTH);
+
+			/* CHANGE STATE TO FLOW CONTROL STATE */
+			TP_State[TP_RX].TP_State = TP_FLOW_CONTROL_STATE;
+		break;
+		case TP_FLOW_CONTROL_STATE:
+			
+			/* CHANGE STATE TO FLOW CONTROL STATE */
+			TP_State[TP_RX].TP_State = TP_IDLE;
+
+			frame_transmit.byte(0) = 0x30;
+      
+			frame_transmit.byte(1) = 0x00;
+      
+			frame_transmit.byte(2) = 0x05;
+
+			/* SEND TRANSMIT DATA TO THE CAN BUS */
+		  output(frame_transmit);
+		break;
+		case TP_CONCECUTIVE_FRAME_STATE:
+
+			/* GET THE REMAINING BYTES */
+			RemaingBytes = (TP_State[TP_RX].TP_TotalBytes - TP_State[TP_RX].TP_CompletedBytes);
+
+			/* CHECK IF THE REMAINING BYTES IS THE LAST CHUNK */
+			if(RemaingBytes > 7)
+			{
+				/* SET COPY BYTES AS 7 - WHICH IS MAXIMUM ALLOWED BYTES IN CONSEQUNCE MEMORY */
+				Copybytes = 7;
+			}
+			else
+			{
+				/* SET THE CHUNK END FLAG TO CLEAR THE DATA FOR THE NEXT ITERATION */
+				EndOfChunk = 1;
+
+				/* SET THE COPY BYTES FOR ONLY RECIEVED BYTES */
+				Copybytes = RemaingBytes;
+			}
+
+			/* COPY DATA TO THE BUFFER */
+			for(loop = 0; loop < Copybytes; loop++)
+			{
+				/* COPY DATA TO THE DESTINATION LOCATION */
+				Received_Frame[loop + TP_State[TP_RX].TP_CompletedBytes] = frame_receive.byte(loop + CONSECUTIVE_FRAME_OFFSET);
+			}
+
+			/* ACCUMULATE COPIED BYTES TO THE COMPLETED BYTES */
+			TP_State[TP_RX].TP_CompletedBytes += Copybytes;
+
+			/* CHECK WHETHER IT IS END OF CHUNK - IF IT IS THEN CLEAR THE DATA FOR NEXT ITERATION */
+			if(EndOfChunk == 1)
+			{
+				EndOfChunk = 0;
+				/* CHANGE STATE TO FLOW CONTROL STATE */
+				TP_State[TP_RX].TP_State = TP_IDLE;
+        
+				TP_State[TP_RX].TP_CompletedBytes = 0;
+        
+				TP_State[TP_RX].TP_TotalBytes = 0;
+        
+				TP_State[TP_RX].TP_BlockCounter = 0;
+        
+				TP_State[TP_RX].TP_SequenceCounter = CF_SEQUENCECOUNTER_START_WITH;
+        
+				/* SET THE DATA FLAG */
+				Data_Received = 1;
+			}
+
+		break;
+		default:
+		break;
+	}
+}
+
+byte TP_Transmit(long Length)
+{
+	/* LOCAL VARIABLE */
+	loop = 0;
+	Result = 1;
+
+	/* CHECK FOR THE TRASMISSION STATE IDLE */
+	if(TP_State[TP_TX].TP_State == TP_IDLE)
+	{
+		/* CHECK FOR THE LENGTH IS SINGLE FRAME */
+		if(Length < 8)
+		{
+			/* COPY DATA TO THE BUFFER */
+			for(loop = 0; loop < Length; loop++)
+			{
+				/* COPY DATA TO THE DESTINATION LOCATION */
+				frame_transmit.byte(loop + SINGLE_FRAME_OFFSET) = TransmitValue[loop];
+			}
+
+			/* CLEAR AND SET THE FRAME TYPE */
+			frame_transmit.byte(0) = 0;
+      
+			frame_transmit.byte(0) = (0x00 | (Length & 0x0F));
+
+			/* SEND TRANSMIT DATA TO THE CAN BUS */
+			output(frame_transmit);
+		}
+		else
+		{
+      if(Length < 4096)
+      {
+      /* GET THE LENGTH AND THIS WILL BE HANDLED IN THE TP HANDLER */
+			TP_State[TP_TX].TP_TotalBytes = Length;
+			/* CHANGE THE TRASNSMISSION STATE */
+			TP_State[TP_TX].TP_State = TP_FIRST_FRAME_STATE;
+      }
+      else
+      {
+			   write("%d,CAN TP ERROR : Max length found !!!",Length);
+        
+      }
+		}
+	}
+	else
+	{
+		/* RETURN ERR STATUS */
+		Result = 0;
+		/* WRITE INVAILD REQUEST */
+		write(" CAN_TP Tranmssion state was ready !!! ");
+	}
+  
+  return Result;
+}
+
+byte TP_Receive(long length)
+{
+	/* LOCAL VARIABLE */
+	loop = 0;
+
+	/* COPY ALL THE DATA TO THE BUFFER */
+	for(loop = 0; loop < length; loop++)
+	{
+		/* COPY DATA TO THE GLOBAL BUFFER */
+		Received_Frame[loop] = frame_receive.byte(loop);
+	}
+
+	/* CHECK IF THE RECIEVED FRAME IS FIRST FRAME */
+	if((Received_Frame[0] & 0xF0) == 0x10)
+	{
+		/* CHANGE THE STATE TO THE FIRST FRAME STATE */
+		TP_State[TP_RX].TP_State = TP_FIRST_FRAME_STATE;
+		write(" CAN_TP State changed...OK ");
+	}
+	/* CHECK IF THE RECIEVED FRAME IS FIRST FRAME */
+	else if((Received_Frame[0] & 0xF0) == 0x20)
+	{
+		/* CHANGE THE STATE TO THE FIRST FRAME STATE */
+		TP_State[TP_RX].TP_State = TP_CONCECUTIVE_FRAME_STATE;
+	}
+	else
+	{
+		/* SET THE DATA FLAG */
+		Data_Received = 1;
+	}
+
+  return 0;
+}
+

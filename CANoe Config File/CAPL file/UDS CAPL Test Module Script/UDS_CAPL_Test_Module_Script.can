@@ -1,0 +1,5459 @@
+/*@!Encoding:1252*/
+/***********************************************************************************************************************
+ *  DISCLAIMER
+ *  Copyright (C) 2011, 2016 Niyata Infotech Ptv. Ltd. All rights reserved.
+ ***********************************************************************************************************************/
+
+/************************************************************************************************************************
+ *  @author              Author : Dhiyananth (dhiyanath@niyatainfotech.com)
+ ***********************************************************************************************************************/
+
+/***********************************************************************************************************************
+ *                                  F I L E   D E S C R I P T I O N
+ **----------------------------------------------------------------------------------------------------------------------
+ *  @brief
+ *
+ *  File name                       :UDS_Test_Report.can
+ *  Version                         :1.0.1
+ *  Platforms supported             :CANoe
+ *  Description                     :This file contains the UDS service test script.
+ *  @bug
+ *--------------------------------------------------------------------------------------------------------------------*/
+
+/**********************************************************************************************************************/
+
+/***********************************************************************************************************************
+*                                      I N C L U D E   F I L E S
+***********************************************************************************************************************/
+includes
+{
+  #include "CAN_TP_FRAME.cin"
+}
+/***********************************************************************************************************************
+*                               L O C A L   V A R I A B L E   D E F I N I T I O N S
+***********************************************************************************************************************/
+variables
+{
+  message 0x7E4 Dia_Req = {dlc = 8};
+  message 0x7EF Dia_Res = {dlc = 8}; 
+  
+  const IDLE = 0x00;
+  const key_1 = 0x35;
+  const key_2 = 0xA3;
+  const key_3 = 0x6C;
+  
+  msTimer Timer14, Timer3E, Timer23, Timer27, Timer83, Timer29, Timer86, Timer31, Timer2C, Timer11, Timer3D, Timer22, Timer2A, Timer2F, Timer19;
+  
+  byte TESTER_PRESENT = 0;
+  byte CLEAR_DIAGNOSTIC_INFORMATION = 0;
+  byte READ_MEMORY_BY_ADDRESS = 0;
+  byte SECURITY_ACCESS = 0;
+  byte ACCESS_TIMING_PARAMETER = 0;
+  byte AUTHENTICATION = 0;
+  byte RESPONSE_ON_EVENT = 0;
+  byte ROUTINE_CONTROL = 0;
+  byte DYNAMICALLY_DEFINE_DATA_IDENTIFIER = 0;
+  byte ECU_RESET = 0;
+  byte WRITE_MEMORY_BY_ADDRESS = 0;
+  byte READ_DATA_BY_IDENTIFIER = 0;
+  byte READ_DATA_BY_PERIODIC_IDENTIFIER = 0;
+  byte INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0;
+  byte READ_DTC = 0;
+  
+  byte session = 1;
+  byte addresslength = 0x14;
+  byte memorysize = 4;
+  byte memoryaddress1 = 0x08;
+  byte memoryaddress2 = 0x00;
+  byte memoryaddress3 = 0x15;
+  byte memoryaddress4 = 0x00;
+  
+  byte routine_1 = 0;
+  byte routine_2 = 0;
+  byte routine_3 = 0;
+  byte routine_cycle = 0;
+  byte dy_cycle = 0;
+  byte resetCount = 1;
+  byte didIndex = 0;
+  byte transmission_mode = 0;
+  byte subfunction = 0;
+  
+  char Buffer[100];
+  
+  byte PERIODIC_DID[2] = {0x45, 0x46};
+  
+  byte RID[3][2] = {{0x23, 0x45}, {0x56, 0x78}, {0xFF, 0x00}};
+  
+  byte DDID[3][2] = {{0xF3, 0x11}, {0xF3, 0x12}, {0xF3, 0x13}};
+  
+  byte DID[12][2] = {{0xF1, 0x8C}, {0xF1, 0x8D}, {0xF1, 0x8E}, {0xF1, 0x8F}, {0xF1, 0x85}, {0xF1, 0x86}, 
+                     {0xF1, 0x87}, {0xF1, 0x88}, {0xF1, 0x81}, {0xF1, 0x82}, {0xD1, 0x00}, {0xD0, 0x21}};
+                     
+  byte DTC_LIST[44][3] ={{0x11, 0x00, 0x86}, {0x11, 0x01, 0x81}, {0x12, 0x00, 0x14}, {0x12, 0x01, 0x15}, {0x12, 0x02, 0x14}, {0x12, 0x03, 0x15}, {0x12, 0x04, 0x98}, 
+                         {0x12, 0x05, 0x14}, {0x12, 0x06, 0x15}, {0x12, 0x07, 0x98}, {0x12, 0x08, 0xF0}, {0x12, 0x09, 0x98}, {0x12, 0x0A, 0xF0}, {0x13, 0x00, 0x19}, 
+                         {0x13, 0x01, 0x19}, {0x13, 0x02, 0x19}, {0x13, 0x03, 0x19}, {0x13, 0x04, 0x14}, {0x13, 0x05, 0x15}, {0x13, 0x06, 0x14}, {0x13, 0x07, 0x15}, 
+                         {0x13, 0x08, 0x14}, {0x13, 0x09, 0x15}, {0x13, 0x0A, 0x1C}, {0x14, 0x00, 0x17}, {0x14, 0x01, 0x16}, {0x14, 0x02, 0x14}, {0x14, 0x03, 0x15}, 
+                         {0x15, 0x00, 0x15}, {0x15, 0x01, 0x14}, {0x15, 0x02, 0x14}, {0x15, 0x03, 0x15}, {0x15, 0x04, 0x17}, {0x15, 0x05, 0x16}, {0x16, 0x00, 0x71}, 
+                         {0x16, 0x01, 0xF1}, {0x16, 0x02, 0x54}, {0x17, 0x00, 0x14}, {0x17, 0x01, 0x15}, {0x17, 0x02, 0x1C}, {0x17, 0x03, 0x1C}, {0x18, 0x00, 0x1F}, 
+                         {0x18, 0x01, 0x1F}, {0x18, 0x02, 0xF2}};    
+  byte SID_14 = 0;
+  byte SID_3E = 0;
+  byte SID_23 = 0;
+  byte SID_27 = 0;
+  byte SID_83 = 0;
+  byte SID_29 = 0;
+  byte SID_86 = 0;
+  byte SID_31 = 0;
+  byte SID_2C = 0;
+  byte SID_11 = 0;
+  byte SID_3D = 0;
+  byte SID_22 = 0;
+  byte SID_2A = 0;
+  byte SID_2F = 0;
+  byte SID_19 = 0;
+
+  /* Shared iteration counters */
+  int  DtcIndex   = 0;
+  int  NrcIndex   = 0;
+
+  /* Phase pass/fail accumulators */
+  int  Phase_pass = 0;
+  int  Phase_fail = 0;
+
+  /* 30 NRC test frames [8 bytes each] */
+  byte NRC_Frames[30][8] =
+  {
+    {0x02,0x19,0x02,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x00,0x29,0x00,0x00,0x00,0x00},
+    {0x02,0x18,0x03,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x03,0x29,0x00,0x00,0x00,0x00},
+    {0x02,0x09,0x03,0x00,0x00,0x00,0x00,0x00},
+    {0x02,0x19,0x00,0x00,0x00,0x00,0x00,0x00},
+    {0x03,0x19,0x0A,0x21,0x00,0x00,0x00,0x00},
+    {0x02,0x91,0x0A,0x00,0x00,0x00,0x00,0x00},
+    {0x02,0x19,0x1A,0x00,0x00,0x00,0x00,0x00},
+    {0x05,0x19,0x09,0x11,0x00,0x85,0x00,0x00},
+    {0x05,0x21,0x09,0x11,0x00,0x86,0x00,0x00},
+    {0x05,0x19,0xFF,0x11,0x00,0x86,0x00,0x00},
+    {0x06,0x19,0x09,0x11,0x00,0x86,0x21,0x00},
+    {0x06,0x19,0x04,0x11,0x00,0x86,0x00,0x00},
+    {0x06,0x21,0x04,0x11,0x00,0x86,0x02,0x00},
+    {0x06,0x19,0x00,0x11,0x00,0x86,0x02,0x00},
+    {0x07,0x19,0x04,0x11,0x00,0x86,0x02,0x10},
+    {0x05,0x19,0x08,0x40,0x21,0x40,0x00,0x00},
+    {0x05,0x19,0x08,0x80,0x21,0x40,0x00,0x00},
+    {0x04,0x09,0x08,0x40,0x21,0x00,0x00,0x00},
+    {0x04,0x09,0x08,0x80,0x21,0x00,0x00,0x00},
+    {0x04,0x19,0x00,0x40,0x21,0x00,0x00,0x00},
+    {0x04,0x19,0xFF,0x80,0x21,0x00,0x00,0x00},
+    {0x06,0x09,0x06,0x18,0x01,0x1F,0x00,0x00},
+    {0x06,0x19,0x20,0x18,0x01,0x1F,0x00,0x00},
+    {0x07,0x19,0x06,0x18,0x01,0x1F,0x29,0x00},
+    {0x06,0x19,0x06,0x18,0x02,0xF3,0x00,0x00},
+    {0x06,0x09,0x04,0x11,0x00,0x86,0x01,0x00},
+    {0x06,0x19,0x00,0x11,0x00,0x86,0x01,0x00},
+    {0x07,0x19,0x04,0x11,0x00,0x86,0x01,0x10}
+  };
+
+  /* Expected NRC per NRC_Frames[] entry */
+  byte ExpectedNRC[30] =
+  {
+    0x13,0x12,0x11,0x13,0x11,0x13,0x13,0x11,0x12,0x31,
+    0x11,0x12,0x13,0x31,0x11,0x12,0x13,0x99,0x99,0x11,
+    0x11,0x12,0x12,0x11,0x12,0x13,0x31,0x11,0x12,0x13
+  };
+
+  char NRC_Desc[30][70] =
+  {
+    "sub 0x02 - incorrectMsgLen (DLC=2, missing statusMask)",
+    "sub 0x00 - subFunctionNotSupported with extra byte",
+    "SID 0x18 - serviceNotSupported",
+    "sub 0x03 - incorrectMsgLen (extra byte)",
+    "SID 0x09 - serviceNotSupported",
+    "sub 0x00 - incorrectMsgLen (DLC=2)",
+    "sub 0x0A - incorrectMsgLen (extra byte 0x21)",
+    "SID 0x91 - serviceNotSupported",
+    "sub 0x1A - subFunctionNotSupported",
+    "sub 0x09, DTC 110085 not in list - requestOutOfRange",
+    "SID 0x21 sub 0x09 - serviceNotSupported",
+    "sub 0xFF - subFunctionNotSupported",
+    "sub 0x09 - incorrectMsgLen (extra byte 0x21)",
+    "sub 0x04, recordNum 0x00 - requestOutOfRange",
+    "SID 0x21 sub 0x04 - serviceNotSupported",
+    "sub 0x00 with DTC - subFunctionNotSupported",
+    "sub 0x04 - incorrectMsgLen (extra byte 0x10)",
+    "sub 0x08 mask 40 21 40 - Positive response expected",
+    "sub 0x08 mask 80 21 40 - Positive response expected",
+    "SID 0x09 sub 0x08 mask 40 - serviceNotSupported",
+    "SID 0x09 sub 0x08 mask 80 - serviceNotSupported",
+    "sub 0x00 with mask 40 - subFunctionNotSupported",
+    "sub 0xFF with mask 80 - subFunctionNotSupported",
+    "SID 0x09 sub 0x06 - serviceNotSupported",
+    "sub 0x20 - subFunctionNotSupported",
+    "sub 0x06 - incorrectMsgLen (extra byte 0x29)",
+    "sub 0x06, DTC 1802F3 not in list - requestOutOfRange",
+    "SID 0x09 sub 0x04 - serviceNotSupported",
+    "sub 0x00 with DTC+RN - subFunctionNotSupported",
+    "sub 0x04 - incorrectMsgLen (extra byte 0x10)"
+  };
+}
+
+/***********************************************************************************************************************
+ *                                     M A I N   T E S T   F U N C T I O N 
+ ***********************************************************************************************************************/
+/* This function is used to execute the Test */
+void MainTest()
+{
+ ProjectInfo();
+// Preconditions();
+ Init();
+ TC_ID_01();
+ TC_ID_02();
+ TC_ID_03();
+ TC_ID_04();
+// TC_ID_05();      // ISO-14229-1:2013 
+ TC_ID_06();
+ TC_ID_07();
+ TC_ID_08();
+ TC_ID_09();
+ TC_ID_10();
+ TC_ID_11();
+ TC_ID_12();
+ TC_ID_13();
+//  TC_ID_14();
+  TC_ID_15();
+}
+
+void ProjectInfo()
+{
+ TestModuleDescription("NiyataSoftwareAsset_UDS");
+ /* Add Information into Test engineer Information Table */
+ TestReportAddEngineerInfo("Company", "Niyata Infotech Pvt Ltd.");
+ TestReportAddEngineerInfo("Tester name", "Dhiyananth");
+ TestReportAddEngineerInfo("Tester name", "Harish");
+ TestReportAddSetupInfo("MCU", "TMS570LC43xx");
+ TestReportAddSetupInfo("IDE", "Code Composer Studio");
+ TestReportAddSUTInfo("SUT", "UDS STACK"); 
+}
+
+/*void Preconditions()
+{
+  testStep("Pre-cond","Start");
+  testStep("1","Ensure that Board is powered ON");
+  testStep("2","Ensure that Power supply is in Normal State (8 - 12V)");
+  testStep("3","Ensure that the CANoe tool is connected to the hardware (VN1610)");
+  testStep("Pre-cond","End");
+}*/
+
+/***********************************************************************************************************************
+ *                                     T E S T C A S E   D E F I N I T I O N S
+ ***********************************************************************************************************************/
+testcase TC_ID_01() 
+{
+ TestCaseTitle("1", "Tester Present");
+ TestCaseDescription(" ISO 14229-1:2020\n\n");
+ TestCaseDescription("10.7 TesterPresent (3E16) service");
+  
+ setTimer(Timer3E, 1000);
+ TesterPresent ();
+}
+
+testcase TC_ID_02()
+{
+  TestCaseTitle("2", "Clear Diagnostic Information");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("12.2 ClearDiagnosticInformation (1416) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer14, 1000);
+  ClearDiagnosticInformation();
+}
+
+testcase TC_ID_03()
+{
+  TestCaseTitle("3", "Read Memory By Address");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("11.3 ReadMemoryByAddress (2316) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer23, 1000);
+  ReadMemoryByAddress();
+}
+
+testcase TC_ID_04()
+{
+  TestCaseTitle("4", "Security Access");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("10.4 SecurityAccess (2716) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer27, 1000);
+  SecurityAccess();
+}
+
+testcase TC_ID_05()
+{
+  TestCaseTitle("", "Access Timing Parameter");
+  TestCaseDescription(" ISO 14229-1:2013\n\n");
+  TestCaseDescription("9.7 AccessTimingParameter (0x83) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer83, 1000);
+  AccessTimingParameter();
+}
+
+testcase TC_ID_06()
+{
+  TestCaseTitle("5", "Authentication");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("10.6 Authentication (2916) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer29, 1000);
+  Authentication();
+}
+
+testcase TC_ID_07()
+{
+  TestCaseTitle("6", "Response On Event");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("10.9 ResponseOnEvent (8616) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer86, 1000);
+  ResponseOnEvent();
+}
+
+testcase TC_ID_08()
+{
+  TestCaseTitle("7", "Routine Control");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("14.2 RoutineControl (3116) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer31, 1000);
+  RoutineControl();
+}
+
+testcase TC_ID_09()
+{
+  TestCaseTitle("8", "Dynamically Define Data Identifier");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("11.6 DynamicallyDefineDataIdentifier (2C16) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer2C, 1000);
+  DynamicallyDefineDataIdentifier();
+}
+
+testcase TC_ID_10()
+{
+  TestCaseTitle("9", "ECU reset");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("10.3 ECUReset (1116) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer11, 1000);
+  ECUReset();
+}
+
+testcase TC_ID_11()
+{
+  TestCaseTitle("10", "Write Memory By Address");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("11.8 WriteMemoryByAddress (3D16) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer3D, 1000);
+  WriteMemoryByAddress();
+}
+
+testcase TC_ID_12()
+{
+  TestCaseTitle("11", "Read Data By Identifier");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("11.2 ReadDataByIdentifier (2216) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer22, 1000);
+  ReadDataByIdentifier();
+}
+
+testcase TC_ID_13()
+{
+  TestCaseTitle("12", "Read Data By Periodic Identifier");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("11.5 ReadDataByPeriodicIdentifier (2A16) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer2A, 1000);
+  ReadDataByPeriodicIdentifier();
+}
+
+testcase TC_ID_14()
+{
+  TestCaseTitle("13", "Input Output Control By Identifier");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("13.2 InputOutputControlByIdentifier (2F16) service");
+  traceWindowClear("Trace");
+  
+  setTimer (Timer2F, 1000);
+  InputOutputControlByIdentifier();
+}
+
+testcase TC_ID_15()
+{
+  TestCaseTitle("14", "ReadDTCInformation (SID 0x19) - Full Coverage");
+  TestCaseDescription(" ISO 14229-1:2020\n\n");
+  TestCaseDescription("12.3 ReadDTCInformation (19h) - All sub-functions + NRC tests");
+
+  setTimer(Timer19, 1000);
+  ReadDTCInformation();
+}
+
+/***********************************************************************************************************************
+ *                                      T I M E R   D E F I N I T I O N S
+ ***********************************************************************************************************************/
+on timer Timer3E
+{
+  TesterPresent();
+}
+
+on timer Timer14
+{
+  ClearDiagnosticInformation();
+}
+
+on timer Timer23
+{
+  ReadMemoryByAddress();
+}
+
+on timer Timer27
+{
+  SecurityAccess();
+}
+
+on timer Timer83
+{
+  AccessTimingParameter();
+}
+
+on timer Timer29
+{
+  Authentication();
+}
+
+on timer Timer86
+{
+  ResponseOnEvent();
+}
+
+on timer Timer31
+{
+  RoutineControl();
+}
+
+on timer Timer2C
+{
+  DynamicallyDefineDataIdentifier();
+}
+
+on timer Timer11
+{
+  ECUReset();
+}
+
+on timer Timer3D
+{
+  WriteMemoryByAddress();
+}
+
+on timer Timer22
+{
+  ReadDataByIdentifier();
+}
+
+on timer Timer2A
+{
+  ReadDataByPeriodicIdentifier();
+}
+
+on timer Timer2F
+{
+  InputOutputControlByIdentifier();
+}
+
+on timer Timer19
+{
+  ReadDTCInformation();
+}
+
+/***********************************************************************************************************************
+ *                                       F U N C T I O N   D E F I N I T I O N S
+ ***********************************************************************************************************************/
+void Init()
+{
+  /* DLC for 0x7E4 Message*/
+  frame_receive.dlc = 8;
+  frame_transmit.dlc = 8;
+
+  /* TIMER CONFIGURED FOR 250 US */
+  setTimer(TP_Timer, 0, TP_TASK_RATE_IN_MICRO_SECONDS * 1000);
+  write ("Ready to Start");
+}
+
+/* Function to send the request frame */
+void Send_Diag_Request(byte dlc, byte service_id, byte sub_function, byte byte3, byte byte4, byte byte5, byte byte6, byte byte7) 
+{
+  Dia_Req.byte(0) = dlc;
+  Dia_Req.byte(1) = service_id;
+  Dia_Req.byte(2) = sub_function;
+  Dia_Req.byte(3) = byte3;
+  Dia_Req.byte(4) = byte4;
+  Dia_Req.byte(5) = byte5;
+  Dia_Req.byte(6) = byte6;
+  Dia_Req.byte(7) = byte7;
+
+  output (Dia_Req);
+  write ("Send request: 0x%02X, 0x%02X, 0x%02X, 0x%02X\n", dlc, service_id, sub_function, byte3);
+}
+
+void Send_Raw_Frame(byte frame[])
+{
+  int i;
+  for (i = 0; i < 8; i++) Dia_Req.byte(i) = frame[i];
+  output(Dia_Req);
+  write("TX_RAW: %02X %02X %02X %02X %02X %02X %02X %02X",
+        frame[0],frame[1],frame[2],frame[3],
+        frame[4],frame[5],frame[6],frame[7]);
+}
+
+void ReadDTCInformation()
+{
+  setTimer(Timer19, 1000);
+  READ_DTC++;
+
+  switch (READ_DTC)
+  {
+    /* case 1 — Session entry: 10 01 */
+    case 1:
+      Send_Diag_Request(0x02, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "10.2.2.2 Request message SubFunction - defaultSession");
+      testStep("", "10 01");
+      if (SID_19 == 1)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* sub 0x01 reportNumberOfDTCByStatusMask */
+    case 2:
+      Send_Diag_Request(0x03, 0x19, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x01 - reportNumberOfDTCByStatusMask");
+      testStep("", "19 01 29 (statusMask=0x29)");
+      if (SID_19 == 4)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 3:
+      Send_Diag_Request(0x02, 0x19, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.4 NRC 13 - incorrectMessageLength (sub 0x01, DLC=2)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 4:
+      Send_Diag_Request(0x03, 0x91, 0x01, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x91)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 5:
+      Send_Diag_Request(0x03, 0x19, 0x00, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x00)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* sub 0x02 reportDTCByStatusMask */
+    case 6:
+      Send_Diag_Request(0x03, 0x19, 0x02, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x02 - reportDTCByStatusMask");
+      if (SID_19 == 5)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 7:
+      Send_Diag_Request(0x02, 0x19, 0x02, 0x00, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x02, DLC=2)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* sub 0x03 reportDTCSnapshotIdentification */
+    case 8:
+      Send_Diag_Request(0x02, 0x19, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x03 - reportDTCSnapshotIdentification");
+      if (SID_19 == 6)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 9:
+      Send_Diag_Request(0x03, 0x19, 0x03, 0x29, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x03, extra byte)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* sub 0x0A reportSupportedDTCs */
+    case 10:
+      Send_Diag_Request(0x02, 0x19, 0x0A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x0A - reportSupportedDTCs");
+      if (SID_19 == 11)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 11:
+      Send_Diag_Request(0x03, 0x19, 0x0A, 0x21, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 13 - incorrectMessageLength (sub 0x0A, extra byte)");
+      if (SID_19 == 14)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 12:
+      Send_Diag_Request(0x02, 0x91, 0x0A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x91)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 13:
+      Send_Diag_Request(0x02, 0x19, 0x1A, IDLE, IDLE, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x1A)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* sub 0x08 reportDTCFaultDetectionCounter */
+    case 14:
+      Send_Diag_Request(0x04, 0x19, 0x08, 0x40, 0x29, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "12.3.2.2 sub 0x08 - reportDTCFaultDetectionCounter");
+      if (SID_19 == 9)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 15:
+      Send_Diag_Request(0x04, 0x19, 0x08, 0x80, 0x29, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      if (SID_19 == 9)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 16:
+      Send_Diag_Request(0x04, 0x09, 0x08, 0x40, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 11 - serviceNotSupported (SID=0x09)");
+      if (SID_19 == 16)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 17:
+      Send_Diag_Request(0x04, 0x09, 0x08, 0x80, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      if (SID_19 == 16)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 18:
+      Send_Diag_Request(0x04, 0x19, 0x00, 0x40, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      testStep("", "NRC 12 - subFunctionNotSupported (sub=0x00)");
+      if (SID_19 == 13)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    case 19:
+      Send_Diag_Request(0x04, 0x19, 0xFF, 0x80, 0x21, IDLE, IDLE, IDLE);
+      testWaitForTimeout(900);
+      if (SID_19 == 13)
+      { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); }
+      else
+      { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); }
+      ReadDTCInformation();
+      break;
+
+    /* case 20 — sub 0x09 reportDTCExtDataRecordByRecordNumber */
+    case 20:
+      if (DtcIndex == 0)
+      {
+        testStep("", "12.3.2.2 sub 0x09 - reportDTCExtDataRecordByRecordNumber (44 DTCs)");
+        Phase_pass = 0; Phase_fail = 0;
+      }
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x05, 0x19, 0x09, DTC_LIST[DtcIndex][0], DTC_LIST[DtcIndex][1], DTC_LIST[DtcIndex][2], IDLE, IDLE);
+        testWaitForTimeout(900);
+        snprintf(Buffer, elcount(Buffer), "19 09 %02X %02X %02X [DTC %d / 44]", DTC_LIST[DtcIndex][0], DTC_LIST[DtcIndex][1], DTC_LIST[DtcIndex][2], DtcIndex + 1);
+        testStep("", Buffer);
+        if (SID_19 == 10) { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else             { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); Phase_fail++; }
+        DtcIndex++; READ_DTC--; ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer), "sub 0x09 complete - %d PASS / %d FAIL", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x09", Buffer);
+        DtcIndex = 0; ReadDTCInformation();
+      }
+      break;
+
+    /* case 21 — sub 0x04 RN=0x02 */
+    case 21:
+      if (DtcIndex == 0) { testStep("", "sub 0x04 RN=0x02 (44 DTCs)"); Phase_pass = 0; Phase_fail = 0; }
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x04, DTC_LIST[DtcIndex][0], DTC_LIST[DtcIndex][1], DTC_LIST[DtcIndex][2], 0x02, IDLE);
+        testWaitForTimeout(900);
+        if (SID_19 == 7) { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else             { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); Phase_fail++; }
+        DtcIndex++; READ_DTC--; ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer), "sub 0x04 RN=02 complete - %d PASS / %d FAIL", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x04 RN=02", Buffer);
+        DtcIndex = 0; ReadDTCInformation();
+      }
+      break;
+
+    /* case 22 — sub 0x04 RN=0x01 */
+    case 22:
+      if (DtcIndex == 0) { testStep("", "sub 0x04 RN=0x01 (44 DTCs)"); Phase_pass = 0; Phase_fail = 0; }
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x04, DTC_LIST[DtcIndex][0], DTC_LIST[DtcIndex][1], DTC_LIST[DtcIndex][2], 0x01, IDLE);
+        testWaitForTimeout(900);
+        if (SID_19 == 7) { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else             { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); Phase_fail++; }
+        DtcIndex++; READ_DTC--; ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer), "sub 0x04 RN=01 complete - %d PASS / %d FAIL", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x04 RN=01", Buffer);
+        DtcIndex = 0; ReadDTCInformation();
+      }
+      break;
+
+    /* case 23 — sub 0x06 ExtRN=0x00 */
+    case 23:
+      if (DtcIndex == 0) { testStep("", "sub 0x06 ExtRN=0x00 (44 DTCs)"); Phase_pass = 0; Phase_fail = 0; }
+      if (DtcIndex < 44)
+      {
+        Send_Diag_Request(0x06, 0x19, 0x06, DTC_LIST[DtcIndex][0], DTC_LIST[DtcIndex][1], DTC_LIST[DtcIndex][2], 0x00, IDLE);
+        testWaitForTimeout(900);
+        if (SID_19 == 8) { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else             { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); Phase_fail++; }
+        DtcIndex++; READ_DTC--; ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer), "sub 0x06 complete - %d PASS / %d FAIL", Phase_pass, Phase_fail);
+        testStep("Summary sub 0x06", Buffer);
+        DtcIndex = 0; ReadDTCInformation();
+      }
+      break;
+
+    /* case 24 — NRC Comprehensive (30 frames) */
+    case 24:
+      if (NrcIndex == 0) { testStep("", "NRC Comprehensive - 30 Frames"); Phase_pass = 0; Phase_fail = 0; }
+      if (NrcIndex < 30)
+      {
+        byte expNRC; byte ok;
+        Send_Raw_Frame(NRC_Frames[NrcIndex]);
+        testWaitForTimeout(900);
+        expNRC = ExpectedNRC[NrcIndex];
+        if      (expNRC == 0x11) ok = ((SID_19 == 12)||(SID_19 == 16)) ? 1 : 0;
+        else if (expNRC == 0x12) ok = (SID_19 == 13) ? 1 : 0;
+        else if (expNRC == 0x13) ok = (SID_19 == 14) ? 1 : 0;
+        else if (expNRC == 0x31) ok = (SID_19 == 15) ? 1 : 0;
+        else                     ok = (SID_19 == 9)  ? 1 : 0;
+        snprintf(Buffer, elcount(Buffer), "[Frame %02d] %s", NrcIndex + 1, NRC_Desc[NrcIndex]);
+        testStep("", Buffer);
+        if (ok) { testStepPass("PASS"); testReportAddWindowCapture("Trace","",""); Phase_pass++; }
+        else    { testStepFail("FAIL"); testReportAddWindowCapture("Trace","",""); Phase_fail++; }
+        NrcIndex++; READ_DTC--; ReadDTCInformation();
+      }
+      else
+      {
+        snprintf(Buffer, elcount(Buffer), "NRC tests complete - %d PASS / %d FAIL", Phase_pass, Phase_fail);
+        testStep("Summary NRC", Buffer);
+        NrcIndex = 0; ReadDTCInformation();
+      }
+      break;
+
+    default:
+      READ_DTC = 0;
+      cancelTimer(Timer19);
+      break;
+  }
+}
+
+void TesterPresent()
+{
+  setTimer(Timer3E, 1000);
+  TESTER_PRESENT++;
+ 
+  switch (TESTER_PRESENT) 
+  {
+    case 1: 
+      Send_Diag_Request(0x02, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_3E == 1) || (SID_3E == 4) || (SID_3E == 5)) 
+      {
+        testStepPass("PASS");
+        TestReportAddWindowCapture("Trace", "", "");
+      } 
+      else 
+      {
+        testStepFail("FAIL");
+        TestReportAddWindowCapture("Trace", "", "");
+      }
+      TesterPresent();  // Call the function again to move to the next READ_DATA_BY_IDENTIFIER
+      break;
+ 
+    case 2:
+      Send_Diag_Request(0x02, 0x3E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.7.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "3E 00");
+      
+      if(SID_3E == 2) 
+      {
+        testStepPass("PASS");
+        TestReportAddWindowCapture("Trace", "", "");
+      } 
+      else 
+      {
+        testStepFail("FAIL");
+        TestReportAddWindowCapture("Trace", "", "");
+      }
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+ 
+    case 3:
+      Send_Diag_Request(0x03, 0x3E, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.7.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if(SID_3E == 3) 
+      {
+        testStepPass("PASS");
+        TestReportAddWindowCapture("Trace", "", "");
+      } 
+      else 
+      {
+        testStepFail("FAIL");
+        TestReportAddWindowCapture("Trace", "", "");
+      }
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+ 
+    case 4:
+      Send_Diag_Request(0x03, 0x3E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.7.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if(SID_3E == 3) 
+      {
+        testStepPass("PASS");
+        TestReportAddWindowCapture("Trace", "", "");
+      } 
+      else 
+      {
+        testStepFail("FAIL");
+        TestReportAddWindowCapture("Trace", "", "");
+      }
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+ 
+    case 5:
+      Send_Diag_Request(0x02, 0x3E, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.7.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "3E 80 - No response");
+      
+      testStepPass("PASS");
+      TestReportAddWindowCapture("Trace", "", "");
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+      
+    case 6:
+      Send_Diag_Request(0x02, 0x3E, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout(900);
+      testStep("", "10.7.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if(SID_3E == 6) 
+      {
+        testStepPass("PASS");
+        TestReportAddWindowCapture("Trace", "", "");
+      } 
+      else 
+      {
+        testStepFail("FAIL");
+        TestReportAddWindowCapture("Trace", "", "");
+      }
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+      
+    case 7:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      TesterPresent();  // Call next READ_DATA_BY_IDENTIFIER
+      break;
+ 
+    default:
+      session++;
+      if(session ==2 || session ==3)
+      {
+      traceWindowClear("Trace");
+      }
+      TESTER_PRESENT = 0;
+      if (session == 4) 
+      {
+        cancelTimer(Timer3E);
+        session = 1;
+      } else {
+        TesterPresent();  // Restart session
+      }
+      break;
+  }
+}
+
+void ClearDiagnosticInformation()
+{
+  setTimer (Timer14, 1000);
+  CLEAR_DIAGNOSTIC_INFORMATION++;
+  
+  switch (CLEAR_DIAGNOSTIC_INFORMATION)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_14 == 1) || (SID_14 == 2) || (SID_14 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ClearDiagnosticInformation();
+      break;
+      
+    case 2:
+      Send_Diag_Request(4, 0x14, 0xFF, 0xFF, 0xFF, IDLE, IDLE, IDLE); // 14 - FF FF FF
+      testWaitForTimeout (900);
+      testStep("", "12.2.2.1 Request message definition");
+      testStep("", "14 FF FF FF");
+      
+      if (SID_14 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ClearDiagnosticInformation();
+      break;
+      
+    case 3:
+      Send_Diag_Request(1, 0x14, 0xFF, 0xFF, 0xFF, IDLE, IDLE, IDLE); // NRC - 13
+      testWaitForTimeout (900);
+      testStep("", "12.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_14 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ClearDiagnosticInformation();
+      break;
+      
+    case 4:
+      Send_Diag_Request(4, 0x41, 0xFF, 0xFF, 0xFF, IDLE, IDLE, IDLE); // NRC - 11
+      testWaitForTimeout (900);
+      testStep("", "12.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_14 == 6)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ClearDiagnosticInformation();
+      break;
+    
+    case 5:
+      Send_Diag_Request(4, 0x14, 0xFF, 0xFF, 0xFE, IDLE, IDLE, IDLE); // NRC - 31
+      testWaitForTimeout (900);
+      testStep("", "12.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_14 == 7)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ClearDiagnosticInformation();
+      break;
+      
+    case 6:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      ClearDiagnosticInformation();
+      break;
+      
+    default:
+      session++;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      CLEAR_DIAGNOSTIC_INFORMATION = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer14);
+        session = 1;
+      }
+      else 
+      {
+        ClearDiagnosticInformation();  
+      }
+      break;
+  }
+}
+
+void ReadMemoryByAddress ()
+{
+  setTimer (Timer23, 1000);
+  READ_MEMORY_BY_ADDRESS++;
+  
+  switch (READ_MEMORY_BY_ADDRESS)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_23 == 1) || (SID_23 == 2) || (SID_23 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      if (session == 1)
+      {
+        READ_MEMORY_BY_ADDRESS = 4;
+      }
+      ReadMemoryByAddress();
+      break;
+      
+    case 2:
+      if ((session == 2) || (session == 3))
+      {
+        Send_Diag_Request(7, 0x23, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 33
+      }
+      testWaitForTimeout (900);
+      testStep("", "11.3.2.1 Request message definition");
+      testStep("", "NRC - 33");
+      
+      if (SID_23 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 3:
+      if ((session == 2) || (session == 3))
+      { 
+        Send_Diag_Request(2, 0x27, 01, IDLE, IDLE, IDLE, IDLE, IDLE); // 27 01
+        READ_MEMORY_BY_ADDRESS = 3;
+      }
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_23 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 4:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // 27 02
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_23 == 6)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 5:
+      Send_Diag_Request(7, 0x23, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // 23
+      testWaitForTimeout (900);
+      testStep("", "11.3.2.1 Request message definition");
+      
+      if ((session == 1 ) && (SID_23 == 4))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_23 == 7))
+      {
+        testStep("", "07 23");
+      }
+      
+      if (((session == 1 ) && (SID_23 == 4)) || (((session == 2) || (session == 3)) && (SID_23 == 7)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 6:
+      Send_Diag_Request(4, 0x23, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 13
+      testWaitForTimeout (900);
+      testStep("", "11.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (((session == 1 ) && (SID_23 == 4)) || (((session == 2) || (session == 3)) && (SID_23 == 8)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 7:
+      Send_Diag_Request(7, 0x32, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 11
+      testWaitForTimeout (900);
+      testStep("", "11.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_23 == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 8:
+      Send_Diag_Request(7, 0x23, 0x41, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 31
+      testWaitForTimeout (900);
+      testStep("", "11.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (((session == 1 ) && (SID_23 == 4)) || (((session == 2) || (session == 3)) && (SID_23 == 10)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadMemoryByAddress(); 
+      break;
+      
+    case 9:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      traceWindowClear("Trace");
+      ReadMemoryByAddress(); 
+      break;
+        
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      READ_MEMORY_BY_ADDRESS = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer23);
+        session = 1;
+      }
+      else 
+      {
+        ReadMemoryByAddress();  
+      }
+      break;
+  }
+} 
+
+void SecurityAccess()
+{
+  setTimer (Timer27, 1000);
+  SECURITY_ACCESS++;
+  
+  switch (SECURITY_ACCESS)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_27 == 1) || (SID_27 == 2) || (SID_27 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+    
+    case 2:
+      Send_Diag_Request(2, 0x27, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Request Seed
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 4))
+      {
+        testStep("", "27 01");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 4)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+
+    case 3:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // Send Key
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 5))
+      {
+        testStep("", "27 02");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 5)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 4:
+      Send_Diag_Request(1, 0x27, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC 13
+      testWaitForTimeout (900);
+      testStep("", "10.4.4 Supported negative response codes (NRC_)");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 6))
+      {
+        testStep("", "NRC - 13");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 6)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 5:
+      Send_Diag_Request(2, 0x72, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC 11
+      testWaitForTimeout (900);
+      testStep("", "10.4.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_27 == 7)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 6:
+      Send_Diag_Request(2, 0x27, IDLE, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC 12
+      testWaitForTimeout (900);
+      testStep("", "10.4.4 Supported negative response codes (NRC_)");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 8))
+      {
+        testStep("", "NRC - 12");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 8)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 7:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if (SID_27 == 1)
+      {
+        testStep("", "10 01");
+      }
+      else if (SID_27 == 2)
+      {
+        testStep("", "10 02");
+      }
+      else if (SID_27 == 3)
+      {
+        testStep("", "10 03");
+      }
+      
+      if ((SID_27 == 1) || (SID_27 == 2) || (SID_27 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 8:
+      Send_Diag_Request(2, 0x27, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Request Seed
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 4))
+      {
+        testStep("", "27 01");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 4)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 9:
+      Send_Diag_Request(5, 0x27, 0x02, 0x53, key_2, key_3, IDLE, IDLE);  // NRC 35
+      testWaitForTimeout (900);
+      testStep("", "10.4.4 Supported negative response codes (NRC_)");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 9))
+      {
+        testStep("", "NRC - 35");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 9)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+ 
+    case 10:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // NRC 24
+      testWaitForTimeout (900);
+      testStep("", "10.4.4 Supported negative response codes (NRC_)");
+      if ((session == 1) && (SID_27 == 13))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_27 == 12))
+      {
+        testStep("", "NRC - 24");
+      }
+      
+      if (((session == 1) && (SID_27 == 13)) || (((session == 2) || (session == 3)) && (SID_27 == 12)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      SecurityAccess();
+      break;
+      
+    case 11:
+      testWaitForTimeout (900);
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      SecurityAccess();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      SECURITY_ACCESS = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer27);
+        session = 1;
+      }
+      else 
+      {
+        SecurityAccess();  
+      }
+      break;
+  }
+}
+
+void AccessTimingParameter()
+{
+  setTimer (Timer83, 1000);
+  ACCESS_TIMING_PARAMETER++;
+  
+  switch (ACCESS_TIMING_PARAMETER)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      if (session == 1)
+      {
+        ACCESS_TIMING_PARAMETER = 3;
+      }
+      testWaitForTimeout (900);
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_83 == 1) || (SID_83 == 2) || (SID_83 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 2:
+      if ((session == 2) || (session == 3))
+      { 
+        Send_Diag_Request(2, 0x27, 01, IDLE, IDLE, IDLE, IDLE, IDLE); // 27 01
+        ACCESS_TIMING_PARAMETER = 2;
+      }
+      testWaitForTimeout (900);
+      testStep("", "27 01");
+      
+      if (SID_83 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 3:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // 27 02
+      testWaitForTimeout (900);
+      testStep("", "27 02");
+      
+      if (SID_83 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 4:
+      Send_Diag_Request(2, 0x83, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // 83 01
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 6))
+      {
+        testStep("", "83 01");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 6)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 5:
+      Send_Diag_Request(2, 0x83, 0x02, IDLE, IDLE, IDLE, IDLE, IDLE); // 83 02
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 7))
+      {
+        testStep("", "83 02");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 7)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 6:
+      Send_Diag_Request(2, 0x83, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE); // 83 03
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 8))
+      {
+        testStep("", "83 03");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 8)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 7:
+      Send_Diag_Request(2, 0x83, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // 83 01
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 6))
+      {
+        testStep("", "83 01");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 6)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 8:
+      Send_Diag_Request(2, 0x83, 0x04, IDLE, IDLE, IDLE, IDLE, IDLE); // 83 04
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 9))
+      {
+        testStep("", "83 04");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 9)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 9:
+      Send_Diag_Request(2, 0x13, 0x02, IDLE, IDLE, IDLE, IDLE, IDLE); // NRC - 11
+      testWaitForTimeout (900);
+      testStep("", "NRC - 11");
+      
+      if (SID_83 == 10)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 10:
+      Send_Diag_Request(2, 0x83, 0x10, IDLE, IDLE, IDLE, IDLE, IDLE); // NRC - 12
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 11))
+      {
+        testStep("", "NRC - 12");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 11)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 11:
+      Send_Diag_Request(1, 0x83, 0x02, IDLE, IDLE, IDLE, IDLE, IDLE); // NRC - 13
+      testWaitForTimeout (900);
+      if ((session == 1) && (SID_83 == 14))
+      {
+        testStep("", "NRC - 7F");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_83 == 12))
+      {
+        testStep("", "NRC - 13");
+      }
+      
+      if (((session == 1) && (SID_83 == 14)) || (((session == 2) || (session == 3)) && (SID_83 == 12)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      if (session == 1)
+      {
+        ACCESS_TIMING_PARAMETER = 13;
+      } 
+      AccessTimingParameter(); 
+      break;
+      
+    case 12:
+      if ((session == 2) || (session == 3))
+      {
+        Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      }
+      ACCESS_TIMING_PARAMETER = 12;
+      testWaitForTimeout (900);
+      if (SID_83 == 2)
+      {
+        testStep("", "10 02");
+      }
+      else if (SID_83 == 3)
+      {
+        testStep("", "10 03");
+      }
+      
+      if ((SID_83 == 2) || (SID_83 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+      
+    case 13:
+      if ((session == 2) || (session == 3))
+      {
+        Send_Diag_Request(2, 0x83, 0x04, IDLE, IDLE, IDLE, IDLE, IDLE); // NRC 24
+      }
+      testWaitForTimeout (900);
+      if (((session == 2) || (session == 3)) && (SID_83 == 13))
+      {
+        testStep("", "NRC - 24");
+      }
+      
+      if (((session == 2) || (session == 3)) && (SID_83 == 13))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      AccessTimingParameter();
+      break;
+    
+    case 14:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      AccessTimingParameter();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      ACCESS_TIMING_PARAMETER = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer83);
+        session = 1;
+      }
+      else 
+      {
+        AccessTimingParameter();  
+      }
+      break;
+  }
+}
+
+void Authentication ()
+{
+  setTimer (Timer29, 1000);
+  AUTHENTICATION++;
+  
+  switch (AUTHENTICATION)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_29 == 1) || (SID_29 == 2) || (SID_29 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 2:
+      Send_Diag_Request(2, 0x29, 0x08, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 08
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 08");
+      
+      if (SID_29 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 3:
+      Send_Diag_Request(7, 0x29, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 01/02
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 01");
+      
+      if (SID_29 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 4:
+      Send_Diag_Request(6, 0x29, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 03
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 03");
+      
+      if (SID_29 == 7)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 5:
+      Send_Diag_Request(5, 0x29, 0x04, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 04
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 04");
+      
+      if (SID_29 == 8)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 6:
+      Send_Diag_Request(2, 0x29, 0x00, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 00
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 00");
+      
+      if (SID_29 == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 7:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if (SID_29 == 1)
+      {
+        testStep("", "10 01");
+      }
+      else if (SID_29 == 2)
+      {
+        testStep("", "10 02");
+      }
+      else if (SID_29 == 3)
+      {
+        testStep("", "10 03");
+      }
+      
+      if ((SID_29 == 1) || (SID_29 == 2) || (SID_29 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+  
+    case 8:
+      Send_Diag_Request(2, 0x29, 0x08, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 08
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 08");
+      
+      if (SID_29 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 9:
+      Send_Diag_Request(4, 0x29, 0x05, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 05/06
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 05");
+      
+      if (SID_29 == 12)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 10:
+      Send_Diag_Request(7, 0x29, 0x07, IDLE, IDLE, IDLE, IDLE, IDLE);  // 29 07
+      testWaitForTimeout (900);
+      testStep("", "10.6.5.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "29 07");
+      
+      if (SID_29 == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 11:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if (SID_29 == 1)
+      {
+        testStep("", "10 01");
+      }
+      else if (SID_29 == 2)
+      {
+        testStep("", "10 02");
+      }
+      else if (SID_29 == 3)
+      {
+        testStep("", "10 03");
+      }
+      
+      if ((SID_29 == 1) || (SID_29 == 2) || (SID_29 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 12:
+      Send_Diag_Request(6, 0x29, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 24
+      testWaitForTimeout (900);
+      testStep("", "10.6.7 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 24");
+      
+      if (SID_29 == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 13:
+      Send_Diag_Request(7, 0x29, 0x06, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 24
+      testWaitForTimeout (900);
+      testStep("", "10.6.7 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 24");
+      
+      if (SID_29 == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 14:
+      Send_Diag_Request(2, 0x29, 09, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 12
+      testWaitForTimeout (900);
+      testStep("", "10.6.7 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if (SID_29 == 11)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 15:
+      Send_Diag_Request(1, 0x29, 08, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 13
+      testWaitForTimeout (900);
+      testStep("", "10.6.7 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_29 == 12)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 16:
+      Send_Diag_Request(2, 0x21, 08, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 11
+      testWaitForTimeout (900);
+      testStep("", "10.6.7 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_29 == 10)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      Authentication();
+      break;
+      
+    case 17:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      Authentication();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      AUTHENTICATION = 0;
+      if (session == 4)
+      {
+        cancelTimer(Timer29);
+        session = 1;
+      }
+      else 
+      {
+        Authentication();  
+      }
+      break;
+  }
+}
+
+void ResponseOnEvent()
+{
+  setTimer (Timer86, 1000);
+  RESPONSE_ON_EVENT++;
+  
+  switch (RESPONSE_ON_EVENT)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      if (session == 1)
+      {
+        RESPONSE_ON_EVENT = 3;
+      }
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_86 == 1) || (SID_86 == 2) || (SID_86 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 2:
+      if ((session == 2) || (session == 3))
+      { 
+        Send_Diag_Request(2, 0x27, 01, IDLE, IDLE, IDLE, IDLE, IDLE); // 27 01
+        RESPONSE_ON_EVENT = 2;
+      }
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_86 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 3:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // Send Key
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_86 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 4:
+      Send_Diag_Request(2, 0x86, 0x00, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 00
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 00");
+      
+      if (SID_86 == 6)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 5:
+      Send_Diag_Request(2, 0x86, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 01
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 01");
+      
+      if (SID_86 == 7)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 6:
+      Send_Diag_Request(2, 0x86, 0x02, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 02
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 02");
+      
+      if (SID_86 == 8)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 7:
+      Send_Diag_Request(2, 0x86, 0x03, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 03
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 03");
+      
+      if (SID_86 == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 8:
+      Send_Diag_Request(2, 0x86, 0x04, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 04
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 04");
+      
+      if (SID_86 == 10)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 9:
+      Send_Diag_Request(2, 0x86, 0x05, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 05
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 05");
+      
+      if (SID_86 == 11)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 10:
+      Send_Diag_Request(2, 0x86, 0x06, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 06
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 06");
+      
+      if (SID_86 == 12)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 11:
+      Send_Diag_Request(2, 0x86, 0x07, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 07
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 07");
+      
+      if (SID_86 == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 12:
+      Send_Diag_Request(2, 0x86, 0x08, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 08
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 08");
+      
+      if (SID_86 == 14)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 13:
+      Send_Diag_Request(2, 0x86, 0x09, IDLE, IDLE, IDLE, IDLE, IDLE);  // 86 09
+      testWaitForTimeout (900);
+      testStep("", "10.9.2.2 Request message SubFunction Parameter $Level (LEV_) Definition");
+      testStep("", "86 09");
+      
+      if (SID_86 == 15)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 14:
+      Send_Diag_Request(2, 0x86, 0x0A, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 12
+      testWaitForTimeout (900);
+      testStep("", "10.9.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if (SID_86 == 16)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 15:
+      Send_Diag_Request(2, 0x68, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 11
+      testWaitForTimeout (900);
+      testStep("", "10.9.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_86 == 17)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 16:
+      Send_Diag_Request(1, 0x86, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // NRC - 13
+      testWaitForTimeout (900);
+      testStep("", "10.9.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_86 == 18)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ResponseOnEvent();
+      break;
+      
+    case 17:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE);  // Default session
+      testWaitForTimeout (900);
+      ResponseOnEvent();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      RESPONSE_ON_EVENT = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer86);
+        session = 1;
+      }
+      else 
+      {
+        ResponseOnEvent();
+      }
+      break;
+  }
+}
+
+void RoutineControl()
+{
+  setTimer (Timer31, 1000);
+  ROUTINE_CONTROL++;
+  
+  switch (ROUTINE_CONTROL)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_31 == 1) || (SID_31 == 2) || (SID_31 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      if (session == 1)
+      {
+        ROUTINE_CONTROL = 3;
+      }
+      RoutineControl();
+      break;
+      
+    case 2:
+      if ((session == 2) || (session == 3))
+      { 
+        Send_Diag_Request(2, 0x27, 01, IDLE, IDLE, IDLE, IDLE, IDLE); // 27 01
+        ROUTINE_CONTROL = 2;
+      }
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_31 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 3:
+      Send_Diag_Request(5, 0x27, 0x02, key_1, key_2, key_3, IDLE, IDLE);  // 27 02
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_31 == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 4:
+      routine_1 = routine_2 = routine_3 = 2;
+      Send_Diag_Request(4, 0x31, routine_1 + 1, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // NRC 24
+      testWaitForTimeout (900);
+      testStep("", "14.2.4 Supported negative response codes (NRC_)");
+      if ((session == 1 ) && (SID_31 == 16))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_31 == 15))
+      {
+        testStep("", "NRC - 24");
+      }
+      
+      if (((session == 1 ) && (SID_31 == 16)) || (((session == 2) || (session == 3)) && (SID_31 == 15)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      routine_1 = routine_2 = routine_3 = 0;
+      RoutineControl();
+      break;
+      
+    case 5:
+      if (routine_1 < 3)
+      {
+        Send_Diag_Request(4, 0x31, routine_1 + 1, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // 31 - 23 45
+        routine_1++;
+        ROUTINE_CONTROL--; 
+      }
+      testWaitForTimeout (900);
+      testStep("", "14.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+
+      if ((session == 1 ) && (SID_31 == 16))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && ((SID_31 == 6) || (SID_31 == 7) || (SID_31 == 8)))
+      {
+        snprintf(Buffer,elcount (Buffer), "31 - 0%X %X %x", routine_1, RID[routine_cycle][0], RID[routine_cycle][1]);  
+        testStep("", Buffer);
+      }
+      
+      if (((session == 1 ) && (SID_31 == 16)) || (((session == 2) || (session == 3)) && ((SID_31 == 6) || (SID_31 == 7) || (SID_31 == 8))))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 6:
+      if (routine_2 < 3)
+      {
+        Send_Diag_Request(4, 0x31, routine_2 + 1, RID[routine_cycle+1][0], RID[routine_cycle+1][1], IDLE, IDLE, IDLE);  // 31 - 56 78
+        routine_2++;
+        ROUTINE_CONTROL--; 
+      }
+      testWaitForTimeout (900);
+      testStep("", "14.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      
+      if ((session == 1 ) && (SID_31 == 16))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && ((SID_31 == 9) || (SID_31 == 10) || (SID_31 == 11)))
+      {
+        snprintf(Buffer,elcount (Buffer), "31 - 0%X %X %x", routine_2, RID[routine_cycle+1][0], RID[routine_cycle+1][1]);  
+        testStep("", Buffer);
+      }
+      
+      if (((session == 1 ) && (SID_31 == 16)) || (((session == 2) || (session == 3)) && ((SID_31 == 9) || (SID_31 == 10) || (SID_31 == 11))))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+    
+    case 7:
+      if (routine_3 < 3)
+      {
+        Send_Diag_Request(4, 0x31, routine_3 + 1, RID[routine_cycle+2][0], RID[routine_cycle+2][1], IDLE, IDLE, IDLE);  // 31 - FF 00
+        routine_3++;
+        ROUTINE_CONTROL--; 
+      }
+      testWaitForTimeout (900);
+      testStep("", "14.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      
+      if ((session == 1 ) && (SID_31 == 16))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && ((SID_31 == 12) || (SID_31 == 13) || (SID_31 == 14)))
+      {
+        snprintf(Buffer,elcount (Buffer), "31 - 0%X %X %x", routine_3, RID[routine_cycle+2][0], RID[routine_cycle+2][1]);  
+        testStep("", Buffer);
+      }
+      
+      if (((session == 1 ) && (SID_31 == 16)) || (((session == 2) || (session == 3)) && ((SID_31 == 12) || (SID_31 == 13) || (SID_31 == 14))))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 8:
+      Send_Diag_Request(4, 0x31, 0x04, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // NRC 12
+      testWaitForTimeout (900);
+      testStep("", "14.2.4 Supported negative response codes (NRC_)");
+      if ((session == 1 ) && (SID_31 == 16))
+      {
+        testStep("", "NRC - 33");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_31 == 17))
+      {
+        testStep("", "NRC - 12");
+      }
+      
+      if (((session == 1 ) && (SID_31 == 16)) || (((session == 2) || (session == 3)) && (SID_31 == 17)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 9:
+      routine_1 = routine_2 = routine_3 = 0;
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if (SID_31 == 1)
+      {
+        testStep("", "10 01");
+      }
+      else if (SID_31 == 2)
+      {
+        testStep("", "10 02");
+      }
+      else if (SID_31 == 3)
+      {
+        testStep("", "10 03");
+      }
+      
+      if ((SID_31 == 1) || (SID_31 == 2) || (SID_31 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 10:
+      Send_Diag_Request(4, 0x31, routine_1 + 1, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // NRC 33
+      testWaitForTimeout (900);
+      testStep("", "14.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 33");
+      
+      if (SID_31 == 16)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 11:
+      Send_Diag_Request(4, 0x13, routine_1 + 1, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // NRC 11
+      testWaitForTimeout (900);
+      testStep("", "14.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_31 == 18)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 12:
+      Send_Diag_Request(3, 0x31, routine_1 + 1, RID[routine_cycle][0], RID[routine_cycle][1], IDLE, IDLE, IDLE);  // NRC 13
+      testWaitForTimeout (900);
+      testStep("", "14.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_31 == 19)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      RoutineControl();
+      break;
+      
+    case 13:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      RoutineControl();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      ROUTINE_CONTROL = 0;
+      routine_1 = 0;
+      routine_2 = 0;
+      routine_3 = 0;
+      routine_cycle = 0;
+      
+      if (session == 4)
+      {
+        cancelTimer (Timer31);
+        session = 1;
+      }
+      else 
+      {
+        RoutineControl();
+      }
+      break;
+  }
+}
+
+void DynamicallyDefineDataIdentifier()
+{
+  setTimer (Timer2C, 1000);
+  DYNAMICALLY_DEFINE_DATA_IDENTIFIER++;
+  
+  switch (DYNAMICALLY_DEFINE_DATA_IDENTIFIER)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, IDLE, IDLE, IDLE, IDLE, IDLE); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_2C == 1) || (SID_2C == 2) || (SID_2C == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 2:
+      TransmitValue[0] = 0x2C;  // 2C 01
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x11;
+      TransmitValue[6] = 0x01;
+      TransmitValue[7] = 0x02;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 01 - F3 11");
+      
+      if (SID_2C == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 3:
+      TransmitValue[0] = 0x2C;
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x12;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x12;
+      TransmitValue[6] = 0x03;
+      TransmitValue[7] = 0x04;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 01 - F3 12");
+      
+      if (SID_2C == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 4:
+      TransmitValue[0] = 0x2C;
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x13;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x13;
+      TransmitValue[6] = 0x05;
+      TransmitValue[7] = 0x06;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 01 - F3 13");
+      
+      if (SID_2C == 6)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 5:
+      TransmitValue[0] = 0x2C;  // 2C 02
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0x21;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x69;
+      TransmitValue[9] = 0x04;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 02 - F3 11");
+      
+      if (SID_2C == 7)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 6:
+      TransmitValue[0] = 0x2C;
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x12;
+      TransmitValue[4] = 0x31;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x68;
+      TransmitValue[9] = 0x08;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 02 - F3 12");
+      
+      if (SID_2C == 8)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 7:
+      TransmitValue[0] = 0x2C;
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x13;
+      TransmitValue[4] = 0x41;
+      TransmitValue[5] = 0x13;
+      TransmitValue[6] = 0x10;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x95;
+      TransmitValue[9] = 0x16;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "2C 02 - F3 13");
+      
+      if (SID_2C == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 8:
+      testStep("", "11.6.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      if (dy_cycle < 3)
+      {
+        Send_Diag_Request(4, 0x2C, 0x03, DDID[dy_cycle][0], DDID[dy_cycle][1], IDLE, IDLE, IDLE); // 2C 03
+        snprintf(Buffer,elcount (Buffer), "2C - 03 %X %x", DDID[dy_cycle][0], DDID[dy_cycle][1]);  
+        testStep("", Buffer);
+        dy_cycle++;
+        DYNAMICALLY_DEFINE_DATA_IDENTIFIER--;
+      }
+      testWaitForTimeout (900);
+     
+      if ((SID_2C == 10) || (SID_2C == 11) || (SID_2C == 12))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 9:
+      TransmitValue[0] = 0x1C;  // NRC 11
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x11;
+      TransmitValue[6] = 0x01;
+      TransmitValue[7] = 0x02;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_2C == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 10:
+      TransmitValue[0] = 0x1C; // NRC 11
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0x21;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x69;
+      TransmitValue[9] = 0x04;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_2C == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 11:
+      Send_Diag_Request(4, 0x1C, 0x03, 0xF3, 0x11, IDLE, IDLE, IDLE); // NRC 11
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_2C == 13)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 12:
+      TransmitValue[0] = 0x2C; // NRC 13
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x11;
+      TransmitValue[6] = 0x01;
+      TransmitValue[7] = 0x02;
+      TP_Transmit(09);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_2C == 15)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 13:
+      TransmitValue[0] = 0x2C;  // NRC 13
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0x21;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x69;
+      TransmitValue[9] = 0x04;
+      TP_Transmit(11);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_2C == 15)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 14:
+      Send_Diag_Request(5, 0x2C, 0x03, 0xF3, 0x11, IDLE, IDLE, IDLE); // NRC 13
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_2C == 15)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 15:
+      TransmitValue[0] = 0x2C;  // NRC 12
+      TransmitValue[1] = 0x04;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x11;
+      TransmitValue[6] = 0x01;
+      TransmitValue[7] = 0x02;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if (SID_2C == 14)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 16:
+      TransmitValue[0] = 0x2C;  // NRC 12
+      TransmitValue[1] = 0x04;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x11;
+      TransmitValue[4] = 0x21;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x69;
+      TransmitValue[9] = 0x04;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if (SID_2C == 14)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 17:
+      Send_Diag_Request(4, 0x2C, 0x04, 0xF3, 0x11, IDLE, IDLE, IDLE); // NRC 12
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+      
+      if (SID_2C == 14)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 18:
+      TransmitValue[0] = 0x2C;  // NRC 31
+      TransmitValue[1] = 0x01;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x10;
+      TransmitValue[4] = 0xF1;
+      TransmitValue[5] = 0x11;
+      TransmitValue[6] = 0x01;
+      TransmitValue[7] = 0x02;
+      TP_Transmit(08);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_2C == 16)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 19:
+      TransmitValue[0] = 0x2C;  // NRC 31
+      TransmitValue[1] = 0x02;
+      TransmitValue[2] = 0xF3;
+      TransmitValue[3] = 0x10;
+      TransmitValue[4] = 0x21;
+      TransmitValue[5] = 0x21;
+      TransmitValue[6] = 0x09;
+      TransmitValue[7] = 0x19;
+      TransmitValue[8] = 0x69;
+      TransmitValue[9] = 0x04;
+      TP_Transmit(10);
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_2C == 16)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 20:
+      Send_Diag_Request(4, 0x2C, 0x03, 0xF3, 0x10, IDLE, IDLE, IDLE); // NRC 31
+      testWaitForTimeout (900);
+      testStep("", "11.6.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_2C == 16)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    case 21:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      DynamicallyDefineDataIdentifier();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      DYNAMICALLY_DEFINE_DATA_IDENTIFIER = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer2C);
+        session = 1;
+      }
+      else
+      {
+        DynamicallyDefineDataIdentifier(); 
+      }
+      break;
+  }
+}
+
+void ECUReset()
+{
+  setTimer(Timer11, 1000);
+  ECU_RESET++;
+
+  switch(ECU_RESET) 
+  {
+    case 1:  
+      Send_Diag_Request(0x02, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+  
+      if ((SID_11 == 1) || (SID_11 == 2) || (SID_11 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ECUReset();
+      break;
+
+    case 2: 
+      testStep("", "10.3.2.2 Request message SubFunction Parameter $Level (LEV_) definition");
+      if (resetCount < 6) 
+      {
+        Send_Diag_Request(0x02, 0x11, resetCount, 0x00, 0x00, 0x00, 0x00, 0x00);
+        snprintf(Buffer,elcount (Buffer), "11 - 0%x", resetCount);  
+        testStep("", Buffer);
+        resetCount++;
+        ECU_RESET--;
+      } 
+      testWaitForTimeout (900);
+  
+      if ((SID_11 == 4) || (SID_11 == 5) || (SID_11 == 6) || (SID_11 == 7) || (SID_11 == 8))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ECUReset();
+      break;
+
+    case 3:
+      Send_Diag_Request(0x03, 0x11, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+  
+      if (SID_11 == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ECUReset();
+      break;
+
+    case 4:
+      Send_Diag_Request(0x02, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 12");
+  
+      if (SID_11 == 10)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ECUReset();
+      break;
+
+    case 5:
+      Send_Diag_Request(0x02, 0x18, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.3.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+  
+      if (SID_11 == 11)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ECUReset();
+      break;
+
+    case 6:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      ECUReset();
+      break;
+      
+    default:
+      session += 1;
+      resetCount = 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      ECU_RESET = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer11);
+        session = 1;
+      }
+      else
+      {
+        ECUReset(); 
+      }
+      break;
+  }
+}
+
+void WriteMemoryByAddress()
+{
+  setTimer (Timer3D, 1000);
+  WRITE_MEMORY_BY_ADDRESS++;
+  
+  switch (WRITE_MEMORY_BY_ADDRESS)
+  {
+    case 1:
+      Send_Diag_Request(2, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00); // 0x10 - session type
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_3D == 1) || (SID_3D == 2) || (SID_3D == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 2:
+      Send_Diag_Request(7, 0x3D, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 33
+      if (session == 1)
+      {
+        WRITE_MEMORY_BY_ADDRESS = 4;
+      }
+      testWaitForTimeout (900);
+      testStep("", "11.8.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 33");
+      
+      if (SID_3D == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 3:
+      if ((session == 2) || (session == 3))
+      { 
+        Send_Diag_Request(2, 0x27, 01, 0, 0, 0, 0, 0); // 27 01
+        WRITE_MEMORY_BY_ADDRESS = 3;
+      }
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_3D == 5)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 4:
+      Send_Diag_Request(5, 0x27, 0x02, 0x35, 0xA3, 0x6C, 0x00, 0x00);  // 27 02
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_3D == 6)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 5:
+      Send_Diag_Request(7, 0x3D, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // 3D
+      testWaitForTimeout (900);
+      testStep("", "11.8.2.1 Request message definition");
+      testStep("", "3D");
+      
+      if (((session == 1 ) && (SID_3D == 4)) || (((session == 2) || (session == 3)) && (SID_3D == 7)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      
+      break;
+      
+    case 6:
+      Send_Diag_Request(4, 0x3D, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 13
+      testWaitForTimeout (900);
+      testStep("", "11.8.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (((session == 1 ) && (SID_3D == 4)) || (((session == 2) || (session == 3)) && (SID_3D == 8)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 7:
+      Send_Diag_Request(7, 0x33, addresslength, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 11
+      testWaitForTimeout (900);
+      testStep("", "11.8.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_3D == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 8:
+      Send_Diag_Request(7, 0x3D, 0x41, memoryaddress1, memoryaddress2, memoryaddress3, memoryaddress4, memorysize);  // NRC 31
+      testWaitForTimeout (900);
+      testStep("", "11.8.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (((session == 1 ) && (SID_3D == 4)) || (((session == 2) || (session == 3)) && (SID_3D == 10)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      WriteMemoryByAddress();
+      break;
+      
+    case 9:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      WriteMemoryByAddress();
+      break;
+      
+    default:
+      session += 1;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      WRITE_MEMORY_BY_ADDRESS = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer3D);
+      }
+      else
+      {
+        WriteMemoryByAddress();
+      }
+      break;
+  }
+}
+
+void ReadDataByIdentifier() 
+{
+  setTimer(Timer22, 1000);
+  READ_DATA_BY_IDENTIFIER++;
+  
+  switch (READ_DATA_BY_IDENTIFIER) 
+  {
+    case 1: 
+      Send_Diag_Request(0x02, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900); 
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+  
+      if ((SID_22 == 1) || (SID_22 == 2) || (SID_22 == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      if (session == 1) 
+      {
+        READ_DATA_BY_IDENTIFIER = 4; 
+      } 
+      else if ((session == 2) || (session == 3))
+      {
+        READ_DATA_BY_IDENTIFIER = 1; 
+      }
+      ReadDataByIdentifier();
+      break;
+      
+    case 2:
+      Send_Diag_Request(0x03, 0x22, 0xF1, 0x8C, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "11.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 33");
+      
+      if (SID_22 == 21)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+      
+    case 3: 
+      Send_Diag_Request(2, 0x27, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_22 == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+      
+    case 4: 
+      Send_Diag_Request(5, 0x27, 0x02, 0x35, 0xA3, 0x6C, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_22 == 5) 
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+    
+    case 5: 
+      testStep("", "11.2.2.1 Request message definition");
+      if (didIndex < 12) 
+      {
+        Send_Diag_Request(0x03, 0x22, DID[didIndex][0], DID[didIndex][1], 0x00, 0x00, 0x00, 0x00);
+        snprintf(Buffer,elcount (Buffer), "22 - %X %X", DID[didIndex][0], DID[didIndex][1]);  
+        testStep("", Buffer); 
+        didIndex++;
+        READ_DATA_BY_IDENTIFIER--;
+      } 
+      testWaitForTimeout (900); 
+      
+      if ((session == 1) && (SID_22 == 21))
+      {
+        testStep("", "NRC - 33"); 
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else if (((session == 2) || (session == 3)) && ((SID_22 == 6) || (SID_22 == 7) || (SID_22 == 8) || (SID_22 == 9) || (SID_22 == 10) || (SID_22 == 11) || (SID_22 == 12) || (SID_22 == 13) || (SID_22 == 14) || (SID_22 == 15) || (SID_22 == 16) || (SID_22 == 17)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+
+    case 6:
+      Send_Diag_Request(0x05, 0x22, 0xF1, 0x8C, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "11.2.4 Supported negative response codes (NRC_)");
+      
+      if ((session == 1) && (SID_22 == 21))
+      {
+        testStep("", "NRC - 33"); 
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_22 == 18))
+      {
+        testStep("", "NRC - 13");
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+      
+    case 7:
+      Send_Diag_Request(0x03, 0x21, 0xF1, 0x8C, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "11.2.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_22 == 19)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByIdentifier();
+      break;
+      
+    case 8:
+      Send_Diag_Request(0x03, 0x22, 0xF1, 0x8A, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "11.2.4 Supported negative response codes (NRC_)");
+      
+      if ((session == 1) && (SID_22 == 21))
+      {
+        testStep("", "NRC - 33"); 
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else if (((session == 2) || (session == 3)) && (SID_22 == 20))
+      {
+        testStep("", "NRC - 31");
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      
+      ReadDataByIdentifier();
+      break;
+      
+    case 9:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      ReadDataByIdentifier();
+      break;
+      
+    default:
+      session += 1;
+      didIndex = 0;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      READ_DATA_BY_IDENTIFIER = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer22);
+      }
+      else
+      {
+        ReadDataByIdentifier();
+      }
+      break;
+  }
+}
+
+void ReadDataByPeriodicIdentifier() 
+{
+  setTimer(Timer2A, 1000);
+  READ_DATA_BY_PERIODIC_IDENTIFIER++;
+  
+  switch (READ_DATA_BY_PERIODIC_IDENTIFIER)
+  {
+    case 1: 
+      Send_Diag_Request(0x02, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.2.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      snprintf(Buffer,elcount (Buffer), "10 - 0%X", session);  
+      testStep("", Buffer);
+      
+      if ((SID_2A == 1) || (SID_2A == 2) || (SID_2A == 3))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      if (session == 1) 
+      {
+        READ_DATA_BY_PERIODIC_IDENTIFIER = 4;  // Skip security access and move to DID reading
+      } 
+      else if (session == 2 || session == 3) 
+      {
+        READ_DATA_BY_PERIODIC_IDENTIFIER = 1;  // Proceed with security access
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 2:
+      Send_Diag_Request(0x03, 0x2A, 0x01, 0x45, 0x00, 0x00, 0x00, 0x00);    
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 33");
+      
+      if (SID_2A == 8)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+      
+    case 3: 
+      Send_Diag_Request(2, 0x27, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 01");
+      
+      if (SID_2A == 4)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 4: 
+      Send_Diag_Request(5, 0x27, 0x02, 0x35, 0xA3, 0x6C, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "10.4.2.2 Request message SubFunction parameter $Level (LEV_) definition");
+      testStep("", "27 02");
+      
+      if (SID_2A == 5) 
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 5:
+      testStep("", "11.5.2.3 Request message data-parameter definition");
+      if (didIndex < 2) 
+      {          
+        Send_Diag_Request(0x03, 0x2A, transmission_mode + 1, PERIODIC_DID[didIndex], 0x00, 0x00, 0x00, 0x00);
+        snprintf(Buffer,elcount (Buffer), "2A - 0%X %x", transmission_mode + 1, PERIODIC_DID[didIndex]);  
+        testStep("", Buffer);
+        transmission_mode++;
+        READ_DATA_BY_PERIODIC_IDENTIFIER--;
+        if (transmission_mode == 4) 
+        {
+          transmission_mode = 0;
+          didIndex++;
+        }
+      }
+      testWaitForTimeout (900);
+      
+      if ((session == 1) && (SID_2A == 8))
+      {
+        testStep("", "NRC - 33"); 
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else if (((session == 2) || (session == 3)) && ((SID_2A == 6) || (SID_2A == 7)))
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 6:
+      Send_Diag_Request(0x03, 0x2A, 0x05, 0x45, 0x00, 0x00, 0x00, 0x00);    
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_2A == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 7:
+      Send_Diag_Request(0x03, 0x2A, 0x05, 0x46, 0x00, 0x00, 0x00, 0x00); 
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+      
+      if (SID_2A == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 8:
+      Send_Diag_Request(0x04, 0x2A, 0x01, 0x45, 0x00, 0x00, 0x00, 0x00); 
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 13");
+      
+      if (SID_2A == 11)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+    case 9:
+      Send_Diag_Request(0x03, 0x02, 0x01, 0x45, 0x00, 0x00, 0x00, 0x00);
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 11");
+      
+      if (SID_2A == 10)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+      
+   case 10:
+      Send_Diag_Request(0x03, 0x2A, 0x01, 0x47, 0x00, 0x00, 0x00, 0x00); 
+      testWaitForTimeout (900);
+      testStep("", "11.5.4 Supported negative response codes (NRC_)");
+      testStep("", "NRC - 31");
+     
+      if (SID_2A == 9)
+      {
+        testStepPass("PASS");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      else
+      {
+        testStepFail("FAIL");
+        testReportAddWindowCapture("Trace", "", "");
+      }
+      ReadDataByPeriodicIdentifier();
+      break;
+     
+    case 11:
+      Send_Diag_Request(2, 0x10, 0x01, IDLE, IDLE, IDLE, IDLE, IDLE); // Default session
+      testWaitForTimeout (900);
+      ReadDataByPeriodicIdentifier();
+      break;
+
+    default:
+      session += 1;
+      didIndex = 0;
+      transmission_mode = 0;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      READ_DATA_BY_PERIODIC_IDENTIFIER = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer2A);
+      }
+      else
+      {
+        ReadDataByPeriodicIdentifier();
+      }
+      break;                   
+  }
+}
+
+void InputOutputControlByIdentifier() // Need to work
+{
+  setTimer(Timer2F, 1000);
+  INPUT_OUTPUT_CONTROL_BY_IDENTIFIER++;
+    
+  switch (INPUT_OUTPUT_CONTROL_BY_IDENTIFIER) 
+  {
+    case 1: 
+      Send_Diag_Request(0x02, 0x10, session, 0x00, 0x00, 0x00, 0x00, 0x00);
+      
+       
+      if (session == 1) 
+      {
+          INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 3; 
+      }
+      else if ((session == 2) || (session == 3 ))
+      {
+        INPUT_OUTPUT_CONTROL_BY_IDENTIFIER =1;
+      }
+      InputOutputControlByIdentifier(); 
+      break;
+      
+    case 2: 
+      if ((session == 2) || (session == 3 )) 
+      {  
+          Send_Diag_Request(2, 0x27, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+          
+          INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 2;
+      }
+      InputOutputControlByIdentifier();
+      break;
+      
+    case 3: 
+      Send_Diag_Request(5, 0x27, 0x02, 0x35, 0xA3, 0x6C, 0x00, 0x00);
+      
+      
+      break;
+      
+    case 4:  
+      if (didIndex < 12) 
+      {
+        Send_Diag_Request(0x03, 0x22, DID[didIndex][0], DID[didIndex][1], 0x00, 0x00, 0x00, 0x00);
+       
+        INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 4;  
+      } 
+      else 
+      {
+        didIndex = 0;
+        INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0;  
+        if (session ==4 )
+        {
+          INPUT_OUTPUT_CONTROL_BY_IDENTIFIER =  5;
+        }
+      }
+      InputOutputControlByIdentifier();
+      break;  
+      
+    case 5:
+      if (didIndex < 12) 
+      {
+        if (subfunction < 4) 
+        { 
+          Send_Diag_Request(0x05, 0x2F, DID[didIndex][0], DID[didIndex][1], subfunction, 0x00, 0x00, 0x00);
+          subfunction++;  
+        } 
+        else 
+        {
+          subfunction = 0;  
+          didIndex++;  
+          INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 3; 
+        }
+      }
+      if (session == 4)
+      {
+        INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 5;
+      }
+      InputOutputControlByIdentifier();
+      break;
+        
+    case 6:
+      Send_Diag_Request(0x05, 0x22, 0xF1, 0x8C, 0x00, 0x00, 0x00, 0x00);
+     
+      INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 6;
+      InputOutputControlByIdentifier();
+      break;
+      
+    case 7:
+      Send_Diag_Request(0x03, 0x21, 0xF1, 0x8C, 0x00, 0x00, 0x00, 0x00);
+      
+      InputOutputControlByIdentifier();
+      break;
+      
+    case 8:
+      Send_Diag_Request(0x03, 0x21, 0xF1, 0x8A, 0x00, 0x00, 0x00, 0x00);
+      if(session == 4)
+      {
+        cancelTimer(Timer2F);
+      }
+      InputOutputControlByIdentifier();
+      break;
+      
+    default:
+      session += 1;
+      didIndex = 0;
+      subfunction = 0;
+      if ((session == 2) || (session == 3))
+      {
+        traceWindowClear("Trace");
+      }
+      INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0;
+      if (session == 4)
+      {
+        cancelTimer (Timer2F);
+      }
+      else
+      {
+        InputOutputControlByIdentifier();
+      }
+      break;
+  }
+}
+
+/***********************************************************************************************************************
+ *                                     C A N   E V E N T   H A N D L E R 
+ ***********************************************************************************************************************/
+/* UDS Response frame */
+on message 0x7EF
+{ 
+  
+  /* Tester Present */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01)) 
+  {
+    SID_3E = 1;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x7E) && (this.byte(3) == 0x00))
+  {
+    SID_3E = 2;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x3E) && (this.byte(3) == 0x13)) 
+  {
+    SID_3E = 3;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02)) 
+  {
+    SID_3E = 4;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03)) 
+  {
+    SID_3E = 5;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x3E) && (this.byte(3) == 0x12)) 
+  {
+    SID_3E = 6;
+  }
+  else
+  {
+    SID_3E = 0;
+  }
+  
+  
+  /* Clear Diagnostic Information */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_14 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_14 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_14 = 3;
+  }
+  else if ((this.byte(0) == 0x01) && (this.byte(1) == 0x54) && (this.byte(2) == IDLE) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_14 = 4;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x14) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_14 = 5;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x41) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_14 = 6;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x14) && (this.byte(3) == 0x31) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_14 = 7;
+  }
+  else 
+  {
+    SID_14 = 0;
+  }
+  
+  
+  /* Read Memory By Address */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_23 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_23 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_23 = 3;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x23) && (this.byte(3) == 0x33) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_23 = 4;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_23 = 5;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_23 = 6;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x63) && (this.byte(2) == IDLE) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_23 = 7;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x23) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_23 = 8;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x32) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_23 = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x23) && (this.byte(3) == 0x31) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_23 = 10;
+  }
+  else
+  {
+    SID_23 = 0;
+  }
+  
+  
+  /* Security Access */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_27 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_27 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_27 = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_27 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_27 = 5;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 6;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x72) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 7;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 8;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x35) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x36) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 10;
+  }
+   else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x37) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 11;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x24) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 12;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x27) && (this.byte(3) == 0x7F) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_27 = 13;
+  }
+  else
+  {
+    SID_27 = 0;
+  }
+  
+  
+  /* Access Timing Parameter */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_83 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_83 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_83 = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_83 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_83 = 5;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC3) && (this.byte(2) == 0x01) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 6;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC3) && (this.byte(2) == 0x02) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 7;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC3) && (this.byte(2) == 0x03) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 8;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC3) && (this.byte(2) == 0x04) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x13) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 10;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x83) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 11;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x83) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 12;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x83) && (this.byte(3) == 0x24) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 13;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x83) && (this.byte(3) == 0x7F) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_83 = 14;
+  }
+  else
+  {
+    SID_83 = 0;
+  }
+  
+  
+  /* Authentication */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_29 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_29 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_29 = 3;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x69) && (this.byte(2) == 0x08) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 4;
+  }
+  else if ((this.byte(0) == 0x07) && (this.byte(1) == 0x69) && (this.byte(2) == 0x01) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 5;
+  }
+  else if ((this.byte(0) == 0x07) && (this.byte(1) == 0x69) && (this.byte(2) == 0x02) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 6;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x69) && (this.byte(2) == 0x03) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 7;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x69) && (this.byte(2) == 0x04) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 8;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x69) && (this.byte(2) == IDLE) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x21) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 10;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x29) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 11;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x29) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 12;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x29) && (this.byte(3) == 0x24) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_29 = 13;
+  }
+  else 
+  {
+    SID_29 = 0;
+  }
+  
+  
+  /* Response On Event */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_86 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_86 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_86 = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_86 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_86 = 5;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x00) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 6;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x01) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 7;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x02) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 8;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x03) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 9;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x04) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 10;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x05) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 11;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x06) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 12;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x07) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 13;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x08) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 14;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0xC6) && (this.byte(2) == 0x09) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 15;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x86) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 16;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x68) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 17;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x86) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_86 = 18;
+  }
+  else
+  {
+    SID_86 = 0;
+  }
+  
+  /* Routine Control */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_31 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_31 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_31 = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_31 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_31 = 5;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x01) && (this.byte(3) == 0x23) && (this.byte(4) == 0x45) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 6;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x02) && (this.byte(3) == 0x23) && (this.byte(4) == 0x45) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 7;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x03) && (this.byte(3) == 0x23) && (this.byte(4) == 0x45) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 8;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x01) && (this.byte(3) == 0x56) && (this.byte(4) == 0x78) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 9;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x02) && (this.byte(3) == 0x56) && (this.byte(4) == 0x78) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 10;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x03) && (this.byte(3) == 0x56) && (this.byte(4) == 0x78) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 11;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x01) && (this.byte(3) == 0xFF) && (this.byte(4) == 0x00) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 12;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x02) && (this.byte(3) == 0xFF) && (this.byte(4) == 0x00) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 13;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x71) && (this.byte(2) == 0x03) && (this.byte(3) == 0xFF) && (this.byte(4) == 0x00) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 14;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x31) && (this.byte(3) == 0x24) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 15;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x31) && (this.byte(3) == 0x33) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 16;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x31) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 17;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x13) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 18;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x31) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_31 = 19;
+  }
+  else
+  {
+    SID_31 = 0;
+  }
+  
+  
+  /* Dynamically Define Data Identifier */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2C = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2C = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2C = 3;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x01) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x11) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 4;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x01) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x12) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 5;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x01) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x13) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 6;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x02) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x11) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 7;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x02) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x12) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 8;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x02) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x13) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 9;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x03) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x11) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 10;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x03) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x12) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 11;
+  }
+  else if ((this.byte(0) == 0x04) && (this.byte(1) == 0x6C) && (this.byte(2) == 0x03) && (this.byte(3) == 0xF3) && (this.byte(4) == 0x13) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 12;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x1C) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 13;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2C) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 14;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2C) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 15;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2C) && (this.byte(3) == 0x31) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_2C = 16;
+  }
+  else
+  {
+    SID_2C = 0;
+  }
+  
+  
+  /* ECU Reset */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_11 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_11 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_11 = 3;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x51) && (this.byte(2) == 0x01) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x51) && (this.byte(2) == 0x02) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 5;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x51) && (this.byte(2) == 0x03) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 6;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x51) && (this.byte(2) == 0x04) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 7;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x51) && (this.byte(2) == 0x05) && (this.byte(3) == IDLE) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 8;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x11) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x11) && (this.byte(3) == 0x12) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 10;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x18) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_11 = 11;
+  }
+  else
+  {
+    SID_11 = 0;
+  }
+  
+  
+  /* Write Memory By Address */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_3D = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_3D = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_3D = 3;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x3D) && (this.byte(3) == 0x33) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_3D = 4;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_3D = 5;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_3D = 6;
+  }
+  else if ((this.byte(0) == 0x07) && (this.byte(1) == 0x7D) && (this.byte(2) == 0x14) && (this.byte(3) == 0x08) && (this.byte(4) == 0x00) && (this.byte(5) == 0x15) && (this.byte(6) == 0x00) && (this.byte(7) == 0x04))
+  {
+    SID_3D = 7;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x3D) && (this.byte(3) == 0x13) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_3D = 8;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x33) && (this.byte(3) == 0x11) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_3D = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x3D) && (this.byte(3) == 0x31) && (this.byte(4) == IDLE) && (this.byte(5) == IDLE) && (this.byte(6) == IDLE) && (this.byte(7) == IDLE))
+  {
+    SID_3D = 10;
+  }
+  else
+  {
+    SID_3D = 0;
+  }
+  
+  
+  /* Read Data By Identifier */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_22 = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_22 = 5;
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x8C) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 6;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x8D) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 7;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x8E) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 8;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x8F) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 9;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x85) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 10;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x86) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 11;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x87) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 12;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x88) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 13;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x81) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 14;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xF1) && (this.byte(4) == 0x82) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 15;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xD1) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 16;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x10) && (this.byte(1) == 0x1B) && (this.byte(2) == 0x62) && (this.byte(3) == 0xD0) && (this.byte(4) == 0x21) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x21) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      if ((this.byte(0) == 0x22) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+      {
+        if ((this.byte(0) == 0x23) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+        {
+          SID_22 = 17;
+        }
+      }
+    }
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x22) && (this.byte(3) == 0x13) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 18;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x21) && (this.byte(3) == 0x11) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 19;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x22) && (this.byte(3) == 0x31) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 20;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x22) && (this.byte(3) == 0x33) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_22 = 21;
+  }
+  else
+  {
+    SID_22 = 0;
+  }
+  
+  
+  /* Read Data By Periodic Identifier */
+  if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 1;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x02) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 2;
+  }
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x03) && (this.byte(3) == 0x00) && (this.byte(4) == 0x32) && (this.byte(5) == 0x13) && (this.byte(6) == 0x88) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 3;
+  }
+  else if ((this.byte(0) == 0x05) && (this.byte(1) == 0x67) && (this.byte(2) == 0x01))
+  {
+    SID_2A = 4;
+  }
+  else if ((this.byte(0) == 0x02) && (this.byte(1) == 0x67) && (this.byte(2) == 0x02))
+  {
+    SID_2A = 5;
+  }
+  else if ((this.byte(0) == 0x01) && (this.byte(1) == 0x6A) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x45) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      SID_2A = 6;
+    }
+  }
+  else if ((this.byte(0) == 0x01) && (this.byte(1) == 0x6A) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    if ((this.byte(0) == 0x46) && (this.byte(1) == 0x00) && (this.byte(2) == 0x00) && (this.byte(3) == 0x00) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+    {
+      SID_2A = 7;
+    }
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2A) && (this.byte(3) == 0x33) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 8;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2A) && (this.byte(3) == 0x31) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 9;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x02) && (this.byte(3) == 0x11) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 10;
+  }
+  else if ((this.byte(0) == 0x03) && (this.byte(1) == 0x7F) && (this.byte(2) == 0x2A) && (this.byte(3) == 0x13) && (this.byte(4) == 0x00) && (this.byte(5) == 0x00) && (this.byte(6) == 0x00) && (this.byte(7) == 0x00))
+  {
+    SID_2A = 11;
+  }
+  else 
+  {
+    SID_2A = 0;
+  }
+  
+  /* ReadDTCInformation positive (59 XX) */
+  if      ((this.byte(1)==0x59)&&(this.byte(2)==0x01)) { SID_19 = 4;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x02)) { SID_19 = 5;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x03)) { SID_19 = 6;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x04)) { SID_19 = 7;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x06)) { SID_19 = 8;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x08)) { SID_19 = 9;  }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x09)) { SID_19 = 10; }
+  else if ((this.byte(1)==0x59)&&(this.byte(2)==0x0A)) { SID_19 = 11; }
+
+  /* Negative response 7F 19 NRC (correct SID) */
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x11)) { SID_19 = 12; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x12)) { SID_19 = 13; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x13)) { SID_19 = 14; }
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(2)==0x19)&&(this.byte(3)==0x31)) { SID_19 = 15; }
+
+  /* Negative response 7F XX 11 (wrong SID in request) */
+  else if ((this.byte(0)==0x03)&&(this.byte(1)==0x7F)&&(this.byte(3)==0x11)&&(this.byte(2)!=0x19)) { SID_19 = 16; }
+  
+  /* Session Control for ReadDTC */
+  else if ((this.byte(0) == 0x06) && (this.byte(1) == 0x50) && (this.byte(2) == 0x01)) { SID_19 = 1; }
+
+  else { SID_19 = 0; }
+  
+  /* CAN TP */
+	loop = 0;
+	/* COPY DATA TO THE BUFFER */
+	for(loop = 0; loop < MAX_DLC; loop++)
+	{
+		/* COPY DATA TO THE DESTINATION LOCATION */
+		frame_receive.byte(loop) = this.byte(loop);
+	}
+
+	/* CHECK THE FRAME IS FLOW CONTROL FRAME */
+	if((this.byte(0) & 0xF0) == 0x30)
+	{
+		/* IF THE FRAME IS FLOW CONTROL FRAME AND THE TP TX STATE IS WAIT FOR FLOW CONTROL THEN HAND OVER THE FRAME TO THE TP TX MANAGER IT WILL HANDLE THE FRAME AS PER THE STANDARD */
+		if(TP_State[TP_TX].TP_State == TP_FLOW_CONTROL_STATE)
+		{
+			/* SET FLAG */
+			TP_FlowControlReceived = 1;
+		}
+		else	/* REJECT THIS FRAME AND SEND NRC IF REQUIRED */
+		{
+			write(" CAN_TP Unexpected frame recieved...OK");
+		}
+	}
+	else
+	{
+	//	write(" CAN_TP message received...OK ");
+		/* MESSAGE RECIEVE INDICATION */
+		TP_Receive(MAX_DLC);
+	}
+}
+
+/***********************************************************************************************************************
+*							                    	E N D   O F   S O F T W A R E
+**********************************************************************************************************************/
+
+/***********************************************************************************************************************
+*                                  R E V I S I O N   H I S T O R Y
+***********************************************************************************************************************
+  REVISION NUMBER      : V1.0.2
+  REVISION DATE        : 18/03/2026
+  CREATED / REVISED BY : Harish R (harishr@niyatainfotech.com)
+  DESCRIPTION          : Integrated ReadDTCInformation (SID 0x19) as TC_ID_15.
+                         Included full coverage of sub-functions and NRC tests.
+	--------------------------------------------------------------------------------------------------------------------
+	REVISION NUMBER      : V1.0.1
+  REVISION DATE        : 21/03/2025
+  CREATED / REVISED BY : Dhiyananth (dhiyanath@niyatainfotech.com)
+  DESCRIPTION          : Created test script for 11 SID's.
+	--------------------------------------------------------------------------------------------------------------------
+  REVISION NUMBER      : V1.0.0
+	REVISION DATE        : 18/02/2025
+	CREATED / REVISED BY : Dhiyananth (dhiyanath@niyatainfotech.com)
+  CREATED / REVISED BY : Harish R (harishr@niyatainfotech.com)
+  CREATED / REVISED BY : Mufees Rahman (mufees@niyatainfotech.com)
+	DESCRIPTION          : Initial version
+------------------------------------------------------------------------------------------------------------------------
+
+***********************************************************************************************************************/
