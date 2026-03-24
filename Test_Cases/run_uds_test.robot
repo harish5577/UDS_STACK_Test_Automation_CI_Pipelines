@@ -1,9 +1,9 @@
 *** Settings ***
-Library    canoe_robot_lib.py
-Library    tenma_robot_lib.py
+Library    ../Libraries/canoe_robot_lib.py
+Library    ../Libraries/tenma_robot_lib.py
 
 *** Variables ***
-${CFG_PATH}    D:\\CAN Simulater APK\\test\\UDS stack CI Automation\\CANoe Config File\\Config file\\UDS_Stack_Automation01.cfg
+${CFG_PATH}    D:\\CAN Simulater APK\\test\\UDS stack CI Automation\\Config\\CANoe Config File\\Config file\\UDS_Stack_Automation01.cfg
 ${TEST_MODULE}    test_capl
 ${TENMA_PORT}    COM10
 ${VOLTAGE}    12

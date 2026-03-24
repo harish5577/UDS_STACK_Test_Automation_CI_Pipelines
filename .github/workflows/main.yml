@@ -32,6 +32,6 @@ jobs:
     - name: Robot Framework Syntax Check
       run: |
         python -m robot --version
-        # REAL RUN on self-hosted hardware
-        python -m robot run_uds_test.robot
+        # Run robot from the Test_Cases folder
+        python -m robot Test_Cases/run_uds_test.robot
 
