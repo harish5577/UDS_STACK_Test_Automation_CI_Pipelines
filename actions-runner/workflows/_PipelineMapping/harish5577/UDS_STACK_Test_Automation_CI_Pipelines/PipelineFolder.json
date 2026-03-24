@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "harish5577/UDS_STACK_Test_Automation_CI_Pipelines",
+  "pipelineDirectory": "UDS_STACK_Test_Automation_CI_Pipelines",
+  "workspaceDirectory": "UDS_STACK_Test_Automation_CI_Pipelines\\UDS_STACK_Test_Automation_CI_Pipelines",
+  "repositories": {
+    "harish5577/UDS_STACK_Test_Automation_CI_Pipelines": {
+      "repositoryPath": "UDS_STACK_Test_Automation_CI_Pipelines\\UDS_STACK_Test_Automation_CI_Pipelines",
+      "lastRunOn": "03/24/2026 15:54:51 +05:30"
+    }
+  },
+  "lastRunOn": "03/24/2026 16:05:59 +05:30"
+}

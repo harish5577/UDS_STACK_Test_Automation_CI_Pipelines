@@ -7,10 +7,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Build artifacts
-GUI_App/build/
-GUI_App/dist/
+# GUI Application and Build artifacts
+GUI_App/
 *.spec
+
 
 # Test results and logs
 log.html

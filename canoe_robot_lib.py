@@ -19,6 +19,8 @@ class canoe_robot_lib:
         self.worksheet = None
         self.row = 1
 
+
+
     def _kill_zombie_canoe(self):
         try:
             subprocess.run(['taskkill', '/F', '/IM', 'CANoe64.exe', '/T'], capture_output=True)
@@ -29,20 +31,19 @@ class canoe_robot_lib:
             logger.warn(f"Failed to kill existing CANoe processes: {e}")
 
     def open_canoe_configuration(self, cfg_path):
-        # Clear old log files if they exist to ensure fresh start
-        for f_path in [self.log_file, self.excel_file]:
-            if os.path.exists(f_path):
+        # Clear old text log if it exists to ensure fresh start
+        if os.path.exists(self.log_file):
+            try:
+                os.remove(self.log_file)
+            except Exception as e:
+                # If remove fails, try to truncate the text log
                 try:
-                    os.remove(f_path)
-                except Exception as e:
-                    # If remove fails, try to truncate the text log
-                    if f_path == self.log_file:
-                        try:
-                            with open(f_path, 'w') as f:
-                                f.truncate(0)
-                        except:
-                            pass
-                    logger.warn(f"Could not delete old log file {f_path}: {e}. Ensure it is closed.")
+                    with open(self.log_file, 'w') as f:
+                        f.truncate(0)
+                except:
+                    pass
+                logger.warn(f"Could not delete old log file {self.log_file}: {e}. Ensure it is closed.")
+
         
         self.canoe_inst.open(canoe_cfg=cfg_path)
         # Enable write window logging to a file
@@ -54,8 +55,9 @@ class canoe_robot_lib:
             with open(self.log_file, 'w') as f:
                 pass
         
-        # Regex to parse the frame data
-        pattern = re.compile(r"Program / Model\tSend request: (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2}), (0x[0-9A-Fa-f]{2})")
+        # Flexible regex to parse variable number of hex bytes from the Write Window
+        # Expected: "Program / Model    Send request: 0x01, 0x02, ..."
+        pattern = re.compile(r"Program / Model\s+Send request:\s+((?:0x[0-9A-Fa-f]{2}(?:,\s+)?)+)")
         
         with open(self.log_file, 'r', errors='ignore') as f:
             # Go to end of file
@@ -66,14 +68,22 @@ class canoe_robot_lib:
                     logger.console(line.strip())
                     match = pattern.search(line)
                     if match and self.worksheet:
-                        # Extract 8 bytes
-                        bytes_data = match.groups()
+                        # Extract the hex data string and split into bytes
+                        hex_str = match.group(1)
+                        # Remove trailing commas and split
+                        bytes_data = [b.strip() for b in hex_str.strip(',').split(',')]
+                        
                         # Write to Excel
                         self.worksheet.write(self.row, 0, time.strftime("%H:%M:%S"))
                         self.worksheet.write(self.row, 1, "0x7E4") # Constant for Dia_Req
-                        for i, b in enumerate(bytes_data):
-                            self.worksheet.write(self.row, i + 2, b)
+                        
+                        # Always write 8 bytes, pad with "0x00" if the request is shorter
+                        for i in range(8):
+                            val = bytes_data[i] if i < len(bytes_data) else "0x00"
+                            self.worksheet.write(self.row, i + 2, val)
                         self.row += 1
+
+
                 else:
                     time.sleep(0.1)
 
@@ -81,15 +91,18 @@ class canoe_robot_lib:
         # Initialize Excel (XlsxWriter will overwrite by default)
         try:
             self.workbook = xlsxwriter.Workbook(self.excel_file)
+            logger.console(f"Creating Excel report: {self.excel_file}")
         except Exception as e:
-            logger.error(f"Failed to create Excel file: {e}. Please ensure it is closed.")
+            logger.error(f"Failed to create Excel file: {e}. PLEASE CLOSE the 'uds_frames_log.xlsx' file if it is open in Excel!")
             raise
+
             
         self.worksheet = self.workbook.add_worksheet("UDS Frames")
         headers = ["Timestamp", "CAN ID", "B0 (DLC)", "B1 (SID)", "B2", "B3", "B4", "B5", "B6", "B7"]
         for i, h in enumerate(headers):
             self.worksheet.write(0, i, h)
         self.row = 1
+
 
         self.canoe_inst.start_measurement()
         # Start log tailing thread
