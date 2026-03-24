@@ -16,7 +16,7 @@ GUI_App/
 log.html
 report.html
 output.xml
-uds_frames_log.xlsx
+Reports/uds_frames_log.xlsx
 canoe_write_log.txt
 *.log
 

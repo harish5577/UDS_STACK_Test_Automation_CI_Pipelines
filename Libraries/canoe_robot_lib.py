@@ -12,7 +12,7 @@ class canoe_robot_lib:
         self._kill_zombie_canoe()
         self.canoe_inst = CANoe(clean_gen_py_cache=True)
         self.log_file = os.path.join(os.getcwd(), 'canoe_write_log.txt')
-        self.excel_file = os.path.join(os.getcwd(), 'uds_frames_log.xlsx')
+        self.excel_file = os.path.join(os.getcwd(), 'Reports', 'uds_frames_log.xlsx')
         self._stop_logging = threading.Event()
         self._log_thread = None
         self.workbook = None
