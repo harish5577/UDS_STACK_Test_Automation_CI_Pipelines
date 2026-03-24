@@ -36,6 +36,7 @@ jobs:
 
     - name: Robot Framework Syntax Check
       run: |
-        python -m robot.libdoc --version
-        # Just checking syntax, as full test requires CANoe and HW
-        # Note: In a real CI environment, you'd use a self-hosted runner with CANoe installed.
+        python -m robot --version
+        # Dry run to check syntax of the robot file
+        python -m robot --dryrun run_uds_test.robot
+
